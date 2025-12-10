@@ -106,15 +106,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
 
                     {/* Title & Header Card */}
                     <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
-                        <div className="flex items-center gap-3 mb-4">
 
-                            {item.mvp && (
-                                <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded">
-                                    <CheckBadgeIcon className="w-3 h-3" />
-                                    MVP Available
-                                </span>
-                            )}
-                        </div>
                         <h1 className="text-3xl md:text-4xl font-bold text-white">{item.title}</h1>
                     </div>
 
@@ -301,9 +293,16 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                 </div>
                             </div>
                             <div className="text-xs text-zinc-500 font-mono lowercase bg-white/5 border border-white/5 px-2 py-1 rounded">
-                                @{item.username.toLowerCase()}
+                                @{item.username.replace(/^@/, '').toLowerCase()}
                             </div>
                         </div>
+
+                        {item.mvp && (
+                            <div className="mb-6 inline-flex items-center gap-2 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-lg">
+                                <CheckBadgeIcon className="w-4 h-4" />
+                                <span>MVP Available</span>
+                            </div>
+                        )}
 
                         {/* Rating Row */}
                         <div className="flex items-center justify-between mb-8 p-3 bg-white/5 rounded-xl border border-white/5">
