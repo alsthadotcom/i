@@ -183,41 +183,39 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                 <ShieldCheckIcon className="w-5 h-5 text-green-500" />
                                 Minimum Viable Product
                             </h2>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-6">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <CheckBadgeIcon className="w-5 h-5 text-green-500" />
-                                    <span className="text-sm font-medium text-white">
-                                        {item.mvp_type} MVP Available
-                                    </span>
-                                </div>
-
-
-
-                                {item.mvp_type === 'Physical' && (item.physical_mvp_image || item.physical_mvp_video) && (
-                                    <div className="space-y-4">
-                                        {item.physical_mvp_image && (
-                                            <div>
-                                                <div className="text-sm text-zinc-500 mb-2">Product Image:</div>
-                                                <img
-                                                    src={item.physical_mvp_image}
-                                                    alt="MVP"
-                                                    className="rounded-lg border border-zinc-700 max-w-full"
-                                                />
-                                            </div>
-                                        )}
-                                        {item.physical_mvp_video && (
-                                            <div>
-                                                <div className="text-sm text-zinc-500 mb-2">Demo Video:</div>
-                                                <video
-                                                    src={item.physical_mvp_video}
-                                                    controls
-                                                    className="rounded-lg border border-zinc-700 max-w-full"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-3 mb-4">
+                                <CheckBadgeIcon className="w-5 h-5 text-green-500" />
+                                <span className="text-sm font-medium text-white">
+                                    {item.mvp_type} MVP Available
+                                </span>
                             </div>
+
+
+
+                            {item.mvp_type === 'Physical' && (item.physical_mvp_image || item.physical_mvp_video) && (
+                                <div className="space-y-4">
+                                    {item.physical_mvp_image && (
+                                        <div>
+                                            <div className="text-sm text-zinc-500 mb-2">Product Image:</div>
+                                            <img
+                                                src={item.physical_mvp_image}
+                                                alt="MVP"
+                                                className="rounded-lg border border-zinc-700 max-w-full"
+                                            />
+                                        </div>
+                                    )}
+                                    {item.physical_mvp_video && (
+                                        <div>
+                                            <div className="text-sm text-zinc-500 mb-2">Demo Video:</div>
+                                            <video
+                                                src={item.physical_mvp_video}
+                                                controls
+                                                className="rounded-lg border border-zinc-700 max-w-full"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
