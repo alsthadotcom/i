@@ -78,9 +78,8 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             setMainDocument(file);
 
             // Trigger AI Analysis
-            if (!scores) {
-                await runAnalysis(file);
-            }
+            // Always run analysis for new file
+            await runAnalysis(file);
         }
     };
 
@@ -124,6 +123,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
 
     const removeMainDocument = () => {
         setMainDocument(null);
+        setScores(null); // Clear scores when document is removed
     };
 
     const removeAdditionalDocument = (index: number) => {

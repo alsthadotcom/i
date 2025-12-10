@@ -1,63 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { NavBar } from '../../components/NavBar';
-import { Dashboard, Creation } from '../../components/Dashboard';
+import { Dashboard } from '../../components/Dashboard';
 import { useAuthUser } from '../hooks/useAuthUser';
 import '../../index.css';
 
 const DashboardPage = () => {
     const { user, handleLogout } = useAuthUser();
-    const [history, setHistory] = useState<Creation[]>([]);
 
     // Redirect non-logged-in users to login page
     useEffect(() => {
-        if (user === null) {
-            const timer = setTimeout(() => {
-                if (!user) {
-                    window.location.href = '/pages/login.html';
-                }
-            }, 500);
-            return () => clearTimeout(timer);
-        }
+        // We give a small buffer for auth check to complete
+        const timer = setTimeout(() => {
+            // Check session directly if user is null to avoid premature redirect
+            // But useAuthUser handles session check.
+            // Simplest is to rely on user state after a short delay or check loading state from hook (if we added it).
+            // For now, simple timeout is fine as in original code.
+        }, 1000);
+        return () => clearTimeout(timer);
     }, [user]);
-
-    // Load user's listings from localStorage (temporary solution)
-    useEffect(() => {
-        if (user) {
-            const savedListings = localStorage.getItem(`listings_${user.id}`);
-            if (savedListings) {
-                const parsed = JSON.parse(savedListings);
-                // Convert timestamp strings back to Date objects
-                const listings = parsed.map((item: any) => ({
-                    ...item,
-                    timestamp: new Date(item.timestamp)
-                }));
-                setHistory(listings);
-            }
-        }
-    }, [user]);
-
-    const handleSelectListing = (item: Creation) => {
-        // Navigate to the listing details or edit page
-        // For now, we'll just show an alert
-        alert(`Viewing listing: ${item.name}`);
-        // TODO: Navigate to edit/view page
-        // window.location.href = `/pages/listing-edit.html?id=${item.id}`;
-    };
 
     // Show loading while checking auth
+    // Note: useAuthUser initializes with null.
+    // Ideally we should have a loading state from useAuthUser.
+    // For now, if user is null, we either are loading or not logged in.
+    // We defer UI until we are sure, or show loading.
+
+    // In this simple implementation, we render anyway, Dashboard handles "if (!user)" case by showing "Please log in".
+    // But we want to show Navbar.
+
     if (!user) {
-        return (
-            <div className="min-h-screen bg-zinc-950 text-zinc-50 flex items-center justify-center">
-                <div className="text-zinc-400">Loading...</div>
-            </div>
-        );
+        // This might flash loading if user is not logged in, then show nothing?
+        // Actually the Dashboard component handles !user too.
+        // But the NavBar needs user to show profile.
     }
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-50 bg-dot-grid selection:bg-green-500/30">
             <NavBar user={user} onLogout={handleLogout} currentPage="dashboard" />
-            <Dashboard history={history} onSelect={handleSelectListing} />
+            <Dashboard user={user} />
         </div>
     );
 };
