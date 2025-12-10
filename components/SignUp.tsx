@@ -216,7 +216,7 @@ export const SignUp: React.FC<SignUpProps> = ({ onLogin, onBack }) => {
                         <input
                             type="text"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={(e) => setUsername(e.target.value.toLowerCase())}
                             className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 transition-colors placeholder:text-zinc-700"
                             placeholder="@founder"
                             required

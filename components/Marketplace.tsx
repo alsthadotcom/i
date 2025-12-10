@@ -173,8 +173,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                             <div className={`absolute top-0 left-0 w-full h-0.5 ${getCategoryColor(index)} opacity-50`}></div>
 
                             <div className="flex justify-between items-start mb-3">
-                                <span className="text-[10px] text-zinc-500 font-mono uppercase border border-zinc-800 px-1.5 py-0.5 rounded">
-                                    {item.username}
+                                <span className="text-[10px] text-zinc-500 font-mono border border-zinc-800 px-1.5 py-0.5 rounded">
+                                    @{item.username.replace(/^@/, '').toLowerCase()}
                                 </span>
                                 <div className="flex items-center space-x-1 text-zinc-400">
                                     <span className="text-xs">{item.overall_score.toFixed(1)}</span>

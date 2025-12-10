@@ -192,7 +192,7 @@ const ProfilePage = () => {
 
                         <div>
                             <h2 className="text-xl font-bold text-white leading-tight">{userInfo.name}</h2>
-                            <p className="text-green-500 font-medium text-sm mt-0.5">{editUsername}</p>
+                            <p className="text-green-500 font-medium text-sm mt-0.5">@{editUsername.replace(/^@/, '').toLowerCase()}</p>
                             <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-900/30 text-green-400 mt-2 border border-green-900/50">
                                 Pro Member
                             </div>
@@ -238,7 +238,7 @@ const ProfilePage = () => {
                                 <input
                                     type="text"
                                     value={editUsername}
-                                    onChange={(e) => setEditUsername(e.target.value)}
+                                    onChange={(e) => setEditUsername(e.target.value.toLowerCase())}
                                     className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500/20 transition-all placeholder:text-zinc-700"
                                     placeholder="Enter username"
                                 />
