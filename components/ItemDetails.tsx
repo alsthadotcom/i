@@ -107,9 +107,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                     {/* Title & Header Card */}
                     <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="text-xs text-zinc-500 font-mono uppercase border border-zinc-800 px-2 py-1 rounded">
-                                {item.username}
-                            </span>
+
                             {item.mvp && (
                                 <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded">
                                     <CheckBadgeIcon className="w-3 h-3" />
@@ -295,10 +293,15 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                         {/* Title (Mobile only, or generic?) -> Maybe 'Purchase' */}
 
                         {/* Price Display */}
-                        <div className="mb-6">
-                            <div className="text-sm text-zinc-400 font-medium mb-1">Asking Price</div>
-                            <div key="price" className="text-4xl font-bold text-white tracking-tight">
-                                ${item.price.toLocaleString()}
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <div className="text-sm text-zinc-400 font-medium mb-1">Asking Price</div>
+                                <div key="price" className="text-4xl font-bold text-white tracking-tight">
+                                    ${item.price.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="text-xs text-zinc-500 font-mono lowercase bg-white/5 border border-white/5 px-2 py-1 rounded">
+                                @{item.username.toLowerCase()}
                             </div>
                         </div>
 
