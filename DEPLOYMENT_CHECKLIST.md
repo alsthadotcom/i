@@ -31,7 +31,7 @@ You MUST add these from your `.env.local` file:
 ```
 VITE_SUPABASE_URL=<your-value>
 VITE_SUPABASE_ANON_KEY=<your-value>
-VITE_GEMINI_API_KEY=<your-value>
+
 ```
 
 **How to add:**

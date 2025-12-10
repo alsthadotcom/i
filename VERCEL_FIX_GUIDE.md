@@ -17,7 +17,7 @@ Go to your Vercel project → Settings → Environment Variables and add:
 |--------------|-------------|---------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL | `https://xxxxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | `eyJhbGciOiJIUzI1...` |
-| `VITE_GEMINI_API_KEY` | Your Google Gemini API key | `AIzaSy...` |
+
 | `VITE_OPENROUTER_API_KEY` | Your OpenRouter API key | `sk-or-v1-...` |
 
 **Important:** 

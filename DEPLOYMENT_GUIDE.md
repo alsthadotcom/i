@@ -56,7 +56,7 @@ Click on **"Environment Variables"** and add the following:
 ```
 VITE_SUPABASE_URL=<your-supabase-url>
 VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-VITE_GEMINI_API_KEY=<your-gemini-api-key>
+
 ```
 
 **Where to find these values:**
