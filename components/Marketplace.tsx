@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlassIcon, FunnelIcon, AdjustmentsHorizontalIcon, PlusIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, AdjustmentsHorizontalIcon, PlusIcon, XMarkIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { getMarketplaceItems, MarketplaceFilters } from '../services/database';
 import type { MarketplaceView } from '../types/database';
@@ -66,7 +66,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
     const [priceRange, setPriceRange] = useState<number>(10000); // Max price
     const [hasMvp, setHasMvp] = useState(false);
     const [hasDocs, setHasDocs] = useState(false);
-    const [sortOption, setSortOption] = useState<{ field: 'price' | 'overall_score', direction: 'asc' | 'desc' } | null>(null);
+    const [highScore, setHighScore] = useState(false); // High AI Score (>80)
+    const [sortOption, setSortOption] = useState<{ field: 'price' | 'overall_score' | 'created_at', direction: 'asc' | 'desc' } | null>(null);
 
     // UI State
     const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -96,18 +97,9 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
         }
     }, [searchTerm]);
 
-    // Fetch items when any filter changes (debounced search handled by space/enter, but others instant?)
-    // User requirement: "sort button should work... filter should work..."
-    // Usually these trigger fetch immediately.
     useEffect(() => {
         fetchItems();
-    }, [selectedCategory, sortOption, hasMvp, hasDocs]);
-    // Intentionally NOT including searchTerm here to respect specific trigger requirement or debounce, 
-    // but typically search should be live. 
-    // User said "with each space bar...". Use effect above handles that.
-    // Also trigger when slider changes? Slider drag heavy. I'll trigger on change (mouse up usually) or debounce.
-    // HTML range input onChange fires continuously. onMouseUp is better.
-    // I'll add a separate effect or handler for price.
+    }, [selectedCategory, sortOption, hasMvp, hasDocs, highScore]);
 
     // Fetch items logic
     const fetchItems = async () => {
@@ -116,11 +108,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
         try {
             const filters: MarketplaceFilters = {
                 limit: 100,
-                searchTerm: searchTerm.trim(), // Send trimmed
+                searchTerm: searchTerm.trim(),
                 category: selectedCategory || undefined,
                 maxPrice: priceRange,
                 hasMvp: hasMvp,
                 hasDocs: hasDocs,
+                minScore: highScore ? 8 : undefined, // Map UI boolean to score > 8
                 sort: sortOption || undefined
             };
 
@@ -138,7 +131,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
     const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        // Space bar trigger handled by useEffect
     };
 
     const handleSearchSubmit = () => {
@@ -232,37 +224,33 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                         </button>
 
                         {showSortMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl p-4 z-30 animate-in fade-in zoom-in-95 duration-200">
-                                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Sort By</h3>
-                                <div className="space-y-2">
+                            <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-2 z-30 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="space-y-1">
                                     {[
+                                        { label: 'Newest Listed', val: { field: 'created_at', direction: 'desc' } },
                                         { label: 'Price: Low to High', val: { field: 'price', direction: 'asc' } },
                                         { label: 'Price: High to Low', val: { field: 'price', direction: 'desc' } },
-                                        { label: 'Rating: Low to High', val: { field: 'overall_score', direction: 'asc' } },
-                                        { label: 'Rating: High to Low', val: { field: 'overall_score', direction: 'desc' } },
-                                    ].map((opt, idx) => (
-                                        <label key={idx} className="flex items-center gap-3 p-2 rounded hover:bg-zinc-800 cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={sortOption?.field === opt.val.field && sortOption?.direction === opt.val.direction}
-                                                onChange={() => {
+                                        { label: 'Highest Rated', val: { field: 'overall_score', direction: 'desc' } },
+                                    ].map((opt, idx) => {
+                                        const isSelected = sortOption
+                                            ? (sortOption.field === opt.val.field && sortOption.direction === opt.val.direction)
+                                            : (idx === 0); // Default
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
                                                     setSortOption(opt.val as any);
-                                                    setShowSortMenu(false); // Close on select
+                                                    setShowSortMenu(false);
                                                 }}
-                                                className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-green-500 focus:ring-offset-0"
-                                            />
-                                            <span className="text-sm text-zinc-300 group-hover:text-white">{opt.label}</span>
-                                        </label>
-                                    ))}
+                                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${isSelected ? 'text-green-500 font-medium bg-zinc-900' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'}`}
+                                            >
+                                                <span>{opt.label}</span>
+                                                {isSelected && <CheckIcon className="w-4 h-4" />}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                                {sortOption && (
-                                    <button
-                                        onClick={() => setSortOption(null)}
-                                        className="mt-3 w-full text-xs text-zinc-500 hover:text-zinc-300 py-1"
-                                    >
-                                        Clear Sort
-                                    </button>
-                                )}
                             </div>
                         )}
                     </div>
@@ -271,45 +259,27 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                     <div className="relative" ref={filterRef}>
                         <button
                             onClick={() => setShowFilterMenu(!showFilterMenu)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${showFilterMenu || hasMvp || hasDocs || priceRange < 10000 ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500'}`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${showFilterMenu || hasMvp || hasDocs || highScore || priceRange < 10000 ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500'}`}
                         >
                             <FunnelIcon className="w-4 h-4" />
                             Filter
                         </button>
 
                         {showFilterMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-72 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl p-5 z-30 animate-in fade-in zoom-in-95 duration-200">
-                                <div className="space-y-6">
-                                    {/* Features Checkboxes */}
-                                    <div>
-                                        <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Features</h3>
-                                        <div className="space-y-3">
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={hasMvp}
-                                                    onChange={(e) => setHasMvp(e.target.checked)}
-                                                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-green-500"
-                                                />
-                                                <span className="text-sm text-zinc-300 group-hover:text-white">MVP Available</span>
-                                            </label>
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={hasDocs}
-                                                    onChange={(e) => setHasDocs(e.target.checked)}
-                                                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500 focus:ring-green-500"
-                                                />
-                                                <span className="text-sm text-zinc-300 group-hover:text-white">Additional Documents</span>
-                                            </label>
-                                        </div>
-                                    </div>
+                            <div className="absolute right-0 top-full mt-2 w-80 bg-zinc-950 border border-zinc-700 rounded-xl shadow-2xl p-5 z-30 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold text-white">Filters</h3>
+                                    <button onClick={() => setShowFilterMenu(false)} className="text-zinc-500 hover:text-white">
+                                        <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
 
+                                <div className="space-y-6">
                                     {/* Price Range Slider */}
                                     <div>
-                                        <div className="flex justify-between items-baseline mb-2">
-                                            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Max Price</h3>
-                                            <span className="text-sm font-mono text-green-400 font-medium">${priceRange.toLocaleString()}</span>
+                                        <div className="flex justify-between items-baseline mb-3">
+                                            <span className="text-sm text-zinc-400">Max Price</span>
+                                            <span className="text-sm font-mono text-green-400 font-bold">${(priceRange / 1000).toFixed(1)}k</span>
                                         </div>
                                         <input
                                             type="range"
@@ -320,25 +290,51 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                                             onChange={handlePriceChange}
                                             onMouseUp={handlePriceCommit}
                                             onTouchEnd={handlePriceCommit}
-                                            className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-400"
+                                            className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-400"
                                         />
-                                        <div className="flex justify-between mt-1 text-[10px] text-zinc-600 font-mono">
+                                        <div className="flex justify-between mt-2 text-xs text-zinc-600">
                                             <span>$0</span>
-                                            <span>$10,000+</span>
+                                            <span>$10k</span>
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => {
-                                            setHasMvp(false);
-                                            setHasDocs(false);
-                                            setPriceRange(10000);
-                                            // setShowFilterMenu(false);
-                                        }}
-                                        className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 rounded hover:bg-zinc-800 transition-colors"
-                                    >
-                                        Reset Filters
-                                    </button>
+                                    {/* Checkboxes */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between cursor-pointer" onClick={() => setHasDocs(!hasDocs)}>
+                                            <span className="text-sm text-zinc-300">Verified Listing</span>
+                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hasDocs ? 'bg-green-500 border-green-500' : 'border-zinc-700 bg-zinc-900'}`}>
+                                                {hasDocs && <CheckIcon className="w-3.5 h-3.5 text-black" />}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between cursor-pointer" onClick={() => setHasMvp(!hasMvp)}>
+                                            <span className="text-sm text-zinc-300">Has MVP</span>
+                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hasMvp ? 'bg-green-500 border-green-500' : 'border-zinc-700 bg-zinc-900'}`}>
+                                                {hasMvp && <CheckIcon className="w-3.5 h-3.5 text-black" />}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between cursor-pointer" onClick={() => setHighScore(!highScore)}>
+                                            <span className="text-sm text-zinc-300">High AI Score (&gt;80)</span>
+                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${highScore ? 'bg-green-500 border-green-500' : 'border-zinc-700 bg-zinc-900'}`}>
+                                                {highScore && <CheckIcon className="w-3.5 h-3.5 text-black" />}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-zinc-800 mt-2">
+                                        <button
+                                            onClick={() => {
+                                                setHasMvp(false);
+                                                setHasDocs(false);
+                                                setHighScore(false);
+                                                setPriceRange(10000);
+                                            }}
+                                            className="w-full py-2 text-xs text-zinc-500 hover:text-white transition-colors"
+                                        >
+                                            Reset all filters
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -376,6 +372,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                             setSelectedCategory('');
                             setHasMvp(false);
                             setHasDocs(false);
+                            setHighScore(false);
                             setPriceRange(10000);
                             setSortOption(null);
                         }}

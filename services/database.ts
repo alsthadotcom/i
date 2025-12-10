@@ -297,8 +297,9 @@ export interface MarketplaceFilters {
     maxPrice?: number;
     hasMvp?: boolean;
     hasDocs?: boolean;
+    minScore?: number;
     sort?: {
-        field: 'price' | 'overall_score';
+        field: 'price' | 'overall_score' | 'created_at';
         direction: 'asc' | 'desc';
     };
 }
@@ -328,6 +329,11 @@ export async function getMarketplaceItems(
     // Price
     if (filters.minPrice !== undefined) query = query.gte('price', filters.minPrice);
     if (filters.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
+
+    // AI Score
+    if (filters.minScore !== undefined) {
+        query = query.gte('overall_score', filters.minScore);
+    }
 
     // MVP
     if (filters.hasMvp) {
