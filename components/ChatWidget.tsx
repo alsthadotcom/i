@@ -54,19 +54,32 @@ export const ChatWidget: React.FC = () => {
             // Self-Healing: If ID is missing but we have a username, fetch the ID
             if (!targetUserId && targetUserName) {
                 console.log('ChatWidget: Missing userId, attempting to handle by username:', targetUserName);
-                try {
-                    const { data, error } = await supabase
+
+                const fetchIdByUsername = async (name: string) => {
+                    const { data } = await supabase
                         .from('user_info')
                         .select('user_id')
-                        .eq('username', targetUserName)
+                        .eq('username', name) // Try exact match
                         .maybeSingle();
+                    return data?.user_id;
+                };
 
-                    if (data && data.user_id) {
-                        console.log('ChatWidget: Resolved userId from username:', data.user_id);
-                        targetUserId = data.user_id;
+                try {
+                    // Try 1: As provided
+                    let foundId = await fetchIdByUsername(targetUserName);
+
+                    // Try 2: Strip '@' if present
+                    if (!foundId && targetUserName.startsWith('@')) {
+                        console.log('ChatWidget: Retrying without @ prefix...');
+                        foundId = await fetchIdByUsername(targetUserName.substring(1));
+                    }
+
+                    if (foundId) {
+                        console.log('ChatWidget: Resolved userId:', foundId);
+                        targetUserId = foundId;
                     } else {
-                        console.error('ChatWidget: Failed to resolve userId from username', error);
-                        alert('Could not start chat: User not found.');
+                        console.error('ChatWidget: Failed to resolve userId for', targetUserName);
+                        alert(`Error: User '${targetUserName}' not found. Cannot start chat.`);
                         return;
                     }
                 } catch (err) {
