@@ -7,7 +7,7 @@ import { NewspaperIcon } from '@heroicons/react/24/outline';
 
 export const Blog: React.FC = () => {
     return (
-        <div className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center px-4 pt-32 animate-in zoom-in-95 duration-700">
+        <div className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center px-4 pt-20 animate-in zoom-in-95 duration-700">
             <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 <div className="relative p-8 md:p-12 bg-zinc-900 ring-1 ring-zinc-800 rounded-lg leading-none flex flex-col items-center text-center max-w-md">
