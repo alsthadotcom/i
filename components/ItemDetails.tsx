@@ -367,7 +367,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                 onClick={handleContactSeller}
                                 className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-lg py-3.5 rounded-xl border border-white/10 transition-all shadow-lg"
                             >
-                                Contact Seller
+                                Message Seller
                             </button>
                         </div>
 
