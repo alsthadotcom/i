@@ -3,7 +3,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../services/supabase';
 
@@ -18,6 +18,36 @@ export const Login: React.FC<LoginProps> = ({ onBack, onRegister }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Check for session on mount to handle Google Sign In return
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                // Check if user has a profile (account exists in our system)
+                const { data: info } = await supabase
+                    .from('user_info')
+                    .select('user_id')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+
+                if (info) {
+                    // Account exists -> Dashboard
+                    window.location.href = '/pages/dashboard.html';
+                } else {
+                    // Account does NOT exist (User authenticated with Google but hasn't signed up properly)
+                    setError("Account doesn't exist. Redirecting to Sign Up...");
+
+                    // Redirect to Sign Up (Retaining session allows SignUp page to auto-fill)
+                    setTimeout(() => {
+                        if (onRegister) onRegister();
+                        else window.location.href = '/pages/signup.html';
+                    }, 2000);
+                }
+            }
+        };
+        checkUser();
+    }, []);
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -31,8 +61,18 @@ export const Login: React.FC<LoginProps> = ({ onBack, onRegister }) => {
 
             if (error) throw error;
 
+            // Check if user_info exists even for password login (consistency)
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: info } = await supabase.from('user_info').select('user_id').eq('user_id', user.id).maybeSingle();
+                if (!info) {
+                    // This shouldn't happen for password login usually, unless data corrupted
+                    throw new Error("Account data missing.");
+                }
+            }
+
             // Login successful - navigate back to home or dashboard
-            if (onBack) onBack();
+            window.location.href = '/pages/dashboard.html';
 
         } catch (err: any) {
             setError(err.message || 'Failed to login');
@@ -46,7 +86,8 @@ export const Login: React.FC<LoginProps> = ({ onBack, onRegister }) => {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    // Return to Login page to check for user_info existence
+                    redirectTo: window.location.href
                 }
             });
             if (error) throw error;
