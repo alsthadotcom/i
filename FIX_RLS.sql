@@ -6,33 +6,27 @@ ALTER TABLE ai_scoring ENABLE ROW LEVEL SECURITY;
 
 -- Allow everyone to view listings (needed for Marketplace)
 DROP POLICY IF EXISTS "Public can view listings" ON idea_listing;
-CREATE POLICY "Public can view listings" ON idea_listingFor SELECT TO public USING (true);
+CREATE POLICY "Public can view listings" ON idea_listing FOR SELECT TO public USING (true);
 
 -- Allow users to insert their own listings
 DROP POLICY IF EXISTS "Users can insert own listings" ON idea_listing;
-CREATE POLICY "Users can insert own listings" ON idea_listing
-FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert own listings" ON idea_listing FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to update their own listings
 DROP POLICY IF EXISTS "Users can update own listings" ON idea_listing;
-CREATE POLICY "Users can update own listings" ON idea_listing
-FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own listings" ON idea_listing FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
 -- Allow users to delete their own listings
 DROP POLICY IF EXISTS "Users can delete own listings" ON idea_listing;
-CREATE POLICY "Users can delete own listings" ON idea_listing
-FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own listings" ON idea_listing FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 
 -- 2. Policies for 'ai_scoring'
 
 -- Allow everyone to view scores
 DROP POLICY IF EXISTS "Public can view scores" ON ai_scoring;
-CREATE POLICY "Public can view scores" ON ai_scoring
-FOR SELECT TO public USING (true);
+CREATE POLICY "Public can view scores" ON ai_scoring FOR SELECT TO public USING (true);
 
 -- Allow authenticated users to insert/update scores (Simplified)
--- Ideally this should check if the user owns the related idea_listing
 DROP POLICY IF EXISTS "Users can manage scores" ON ai_scoring;
-CREATE POLICY "Users can manage scores" ON ai_scoring
-FOR ALL TO authenticated USING (true);
+CREATE POLICY "Users can manage scores" ON ai_scoring FOR ALL TO authenticated USING (true);
