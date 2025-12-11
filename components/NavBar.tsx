@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChatWidget } from './ChatWidget';
 
 interface NavBarProps {
   currentPage?: string;
@@ -159,6 +160,9 @@ export const NavBar: React.FC<NavBarProps> = ({ currentPage, user, onLogout, onN
           </div>
         )}
       </div>
+
+      {/* Messaging Widget */}
+      {user && <ChatWidget />}
     </nav>
   );
 };

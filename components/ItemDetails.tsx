@@ -141,6 +141,19 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
         return 'text-red-500';
     };
 
+    const handleContactSeller = () => {
+        if (!currentUser) return alert('Please log in to message the seller.');
+        if (!item) return;
+        if (currentUser.id === item.user_id) return alert('You cannot message yourself.');
+
+        window.dispatchEvent(new CustomEvent('ida:open-chat', {
+            detail: {
+                userId: item.user_id,
+                userName: item.username // We use username as display name if full name not available
+            }
+        }));
+    };
+
     return (
         <div className="w-full max-w-7xl mx-auto px-4 pt-24 pb-12 animate-in fade-in duration-500">
             <button
@@ -325,13 +338,13 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="font-bold text-white leading-none">{item.overall_score.toFixed(1)}</span>
-                                    <span className="text-[10px] text-zinc-500 uppercase">AI Score</span>
+                                    <span className="text-xs text-zinc-500 uppercase">AI Score</span>
                                 </div>
                             </div>
                             <div className="h-8 w-px bg-white/10 mx-2"></div>
                             <div className="flex flex-col items-end px-2">
                                 <span className="text-xs text-zinc-400">Validated by</span>
-                                <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-wider">IDA AI</span>
+                                <span className="text-xs text-zinc-500 uppercase font-mono tracking-wider">IDA AI</span>
                             </div>
                         </div>
 
@@ -340,7 +353,10 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                             <button className="w-full bg-white text-black hover:bg-zinc-200 font-bold text-lg py-3.5 rounded-xl transition-all shadow-lg">
                                 Buy Now
                             </button>
-                            <button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-lg py-3.5 rounded-xl border border-white/10 transition-all shadow-lg">
+                            <button
+                                onClick={handleContactSeller}
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-lg py-3.5 rounded-xl border border-white/10 transition-all shadow-lg"
+                            >
                                 Contact Seller
                             </button>
                         </div>

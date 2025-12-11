@@ -72,6 +72,7 @@ export interface MarketplaceView {
 export interface IdeaDetailView {
     idea_detail_id: string;
     idea_id: string;
+    user_id: string; // Ensure this is present
     ai_score_id: string;
     title: string;
     description: string;
