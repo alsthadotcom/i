@@ -376,10 +376,16 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                             </button>
                             <button
                                 onClick={handleContactSeller}
-                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-lg py-3.5 rounded-xl border border-white/10 transition-all shadow-lg"
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-lg py-3.5 rounded-xl border border-white/10 transition-all shadow-lg mb-3"
                             >
                                 Message Seller
                             </button>
+                            <a
+                                href={`/pages/profile.html?id=${item.user_id}`}
+                                className="block w-full text-center text-zinc-500 hover:text-white text-sm transition-colors py-2"
+                            >
+                                View Seller Profile
+                            </a>
                         </div>
 
                         {/* Secondary Actions */}

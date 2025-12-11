@@ -4,9 +4,9 @@ import { NavBar } from '../../components/NavBar';
 import { Footer } from '../../components/Footer';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { supabase } from '../../services/supabase';
-import { getUserInfoById, updateUserUsername, updateUserProfilePicture, uploadDocument, getUserLikedListings, getUserSavedListings } from '../../services/database';
+import { getUserInfoById, updateUserUsername, updateUserProfilePicture, uploadDocument, getUserLikedListings, getUserSavedListings, getUserListings } from '../../services/database';
 import type { UserInfo, MarketplaceView } from '../../types/database';
-import { EnvelopeIcon, CameraIcon, HeartIcon, BookmarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon, CameraIcon, HeartIcon, BookmarkIcon, ArrowRightIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { handleNavigation } from '../utils/navigation';
 import '../../index.css';
 
@@ -20,23 +20,65 @@ const ProfilePage = () => {
     const [isUploadingPicture, setIsUploadingPicture] = useState(false);
     const profilePictureInputRef = React.useRef<HTMLInputElement>(null);
 
-    // Likes & Saves
+    // Likes, Saves & My Listings
     const [likedIdeas, setLikedIdeas] = useState<MarketplaceView[]>([]);
     const [savedIdeas, setSavedIdeas] = useState<MarketplaceView[]>([]);
+    const [sellingIdeas, setSellingIdeas] = useState<MarketplaceView[]>([]);
+
+    // View Mode
+    const [isPublicView, setIsPublicView] = useState(false);
 
     // Fetch user info from database
+    // Fetch user info from database
     useEffect(() => {
-        if (user === null) {
-            const timer = setTimeout(() => {
-                if (!user) {
-                    window.location.href = '/pages/login.html';
-                }
-            }, 500);
-            return () => clearTimeout(timer);
+        const params = new URLSearchParams(window.location.search);
+        const viewId = params.get('id');
+
+        // Check if viewing another user's profile
+        if (viewId && (user ? viewId !== user.id : true)) {
+            setIsPublicView(true);
+            fetchPublicProfile(viewId);
         } else {
-            fetchUserInfo();
+            // Viewing own profile
+            setIsPublicView(false);
+            if (user === null) {
+                const timer = setTimeout(() => {
+                    if (!user) {
+                        window.location.href = '/pages/login.html';
+                    }
+                }, 1000);
+                return () => clearTimeout(timer);
+            } else {
+                fetchUserInfo();
+            }
         }
     }, [user]);
+
+    const fetchPublicProfile = async (targetId: string) => {
+        setIsLoading(true);
+        try {
+            const { data } = await getUserInfoById(targetId);
+            if (data) {
+                setUserInfo(data);
+                params_username_hack(data.username);
+            } else {
+                setMessage({ type: 'error', text: 'User not found' });
+            }
+
+            // Public View: Show Listings (Selling)
+            const { data: listings } = await getUserListings(targetId);
+            setSellingIdeas(listings || []);
+
+            // Don't show likes/saves for privacy in public view
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const params_username_hack = (name: string) => setEditUsername(name); // Helper to avoid lint if I used setEditUsername direct
 
     const fetchUserInfo = async () => {
         if (!user) return;
@@ -55,8 +97,11 @@ const ProfilePage = () => {
         // Load liked and saved ideas
         const { data: likes } = await getUserLikedListings(user.id);
         const { data: saves } = await getUserSavedListings(user.id);
+        const { data: selling } = await getUserListings(user.id); // Also load my own listings
+
         setLikedIdeas(likes || []);
         setSavedIdeas(saves || []);
+        setSellingIdeas(selling || []);
 
         setIsLoading(false);
     };
@@ -178,7 +223,7 @@ const ProfilePage = () => {
                             <button
                                 onClick={() => profilePictureInputRef.current?.click()}
                                 disabled={isUploadingPicture}
-                                className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                                className={`absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed ${isPublicView ? 'hidden' : ''}`}
                             >
                                 {isUploadingPicture ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -237,7 +282,7 @@ const ProfilePage = () => {
                                 </div>
                                 <input
                                     type="email"
-                                    value={userInfo.email}
+                                    value={isPublicView ? 'Hidden (Private)' : userInfo.email}
                                     readOnly
                                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-4 py-3 text-zinc-400 focus:outline-none focus:border-zinc-700 transition-colors cursor-not-allowed"
                                 />
@@ -251,7 +296,8 @@ const ProfilePage = () => {
                                 <input
                                     type="text"
                                     value={editUsername}
-                                    onChange={(e) => setEditUsername(e.target.value.toLowerCase())}
+                                    readOnly={isPublicView}
+                                    onChange={(e) => !isPublicView && setEditUsername(e.target.value.toLowerCase())}
                                     className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500/20 transition-all placeholder:text-zinc-700"
                                     placeholder="Enter username"
                                 />
@@ -272,7 +318,7 @@ const ProfilePage = () => {
                         <button
                             onClick={handleSave}
                             disabled={isSaving || editUsername === userInfo.username}
-                            className="bg-white text-black text-sm font-semibold px-5 py-2 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`bg-white text-black text-sm font-semibold px-5 py-2 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isPublicView ? 'hidden' : ''}`}
                         >
                             {isSaving ? 'Saving...' : 'Save Changes'}
                         </button>
@@ -280,46 +326,32 @@ const ProfilePage = () => {
 
                 </div>
 
-                {/* Liked Ideas Section */}
+                {/* Selling Ideas Section */}
                 <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8">
                     <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                        <HeartIcon className="w-5 h-5 text-pink-500" />
-                        Liked Ideas ({likedIdeas.length})
+                        <ShoppingBagIcon className="w-5 h-5 text-green-500" />
+                        Selling Listings ({sellingIdeas.length})
                     </h2>
 
-                    {likedIdeas.length === 0 ? (
-                        <p className="text-zinc-500 text-sm italic">You haven't liked any ideas yet.</p>
+                    {sellingIdeas.length === 0 ? (
+                        <p className="text-zinc-500 text-sm italic">No listings found.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-b border-white/10 text-zinc-400 text-sm">
                                         <th className="pb-3 pl-2">Title</th>
-                                        <th className="pb-3">Category</th>
                                         <th className="pb-3">Price</th>
-                                        <th className="pb-3">AI Score</th>
-                                        <th className="pb-3"></th>
+                                        <th className="pb-3 text-right pr-2">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {likedIdeas.map(item => (
+                                <tbody className="text-sm divide-y divide-white/5">
+                                    {sellingIdeas.map(item => (
                                         <tr key={item.idea_id} className="group hover:bg-white/5 transition-colors">
                                             <td className="py-4 pl-2 font-medium text-white">{item.title}</td>
-                                            <td className="py-4 text-zinc-400 text-sm">{item.category || 'N/A'}</td>
                                             <td className="py-4 text-green-400 font-mono">${item.price.toLocaleString()}</td>
-                                            <td className="py-4">
-                                                <div className="flex items-center gap-1">
-                                                    <span className={`font-bold ${item.overall_score >= 7.5 ? 'text-green-500' : item.overall_score >= 5 ? 'text-yellow-500' : 'text-red-500'}`}>
-                                                        {item.overall_score.toFixed(1)}
-                                                    </span>
-                                                    <span className="text-xs text-zinc-600">/10</span>
-                                                </div>
-                                            </td>
                                             <td className="py-4 text-right pr-2">
-                                                <a
-                                                    href={`/pages/details.html?id=${item.idea_id}`}
-                                                    className="text-zinc-500 hover:text-white transition-colors inline-block"
-                                                >
+                                                <a href={`/pages/details.html?id=${item.idea_id}`} className="text-zinc-500 hover:text-white transition-colors inline-block">
                                                     <ArrowRightIcon className="w-5 h-5" />
                                                 </a>
                                             </td>
@@ -331,56 +363,111 @@ const ProfilePage = () => {
                     )}
                 </div>
 
-                {/* Saved Ideas Section */}
-                <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8 mb-12">
-                    <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                        <BookmarkIcon className="w-5 h-5 text-blue-500" />
-                        Saved Ideas ({savedIdeas.length})
-                    </h2>
+                {!isPublicView && (
+                    <>
+                        {/* Liked Ideas Section */}
+                        <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8">
+                            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <HeartIcon className="w-5 h-5 text-pink-500" />
+                                Liked Ideas ({likedIdeas.length})
+                            </h2>
 
-                    {savedIdeas.length === 0 ? (
-                        <p className="text-zinc-500 text-sm italic">You haven't saved any ideas yet.</p>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-white/10 text-zinc-400 text-sm">
-                                        <th className="pb-3 pl-2">Title</th>
-                                        <th className="pb-3">Category</th>
-                                        <th className="pb-3">Price</th>
-                                        <th className="pb-3">AI Score</th>
-                                        <th className="pb-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {savedIdeas.map(item => (
-                                        <tr key={item.idea_id} className="group hover:bg-white/5 transition-colors">
-                                            <td className="py-4 pl-2 font-medium text-white">{item.title}</td>
-                                            <td className="py-4 text-zinc-400 text-sm">{item.category || 'N/A'}</td>
-                                            <td className="py-4 text-green-400 font-mono">${item.price.toLocaleString()}</td>
-                                            <td className="py-4">
-                                                <div className="flex items-center gap-1">
-                                                    <span className={`font-bold ${item.overall_score >= 7.5 ? 'text-green-500' : item.overall_score >= 5 ? 'text-yellow-500' : 'text-red-500'}`}>
-                                                        {item.overall_score.toFixed(1)}
-                                                    </span>
-                                                    <span className="text-xs text-zinc-600">/10</span>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 text-right pr-2">
-                                                <a
-                                                    href={`/pages/details.html?id=${item.idea_id}`}
-                                                    className="text-zinc-500 hover:text-white transition-colors inline-block"
-                                                >
-                                                    <ArrowRightIcon className="w-5 h-5" />
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            {likedIdeas.length === 0 ? (
+                                <p className="text-zinc-500 text-sm italic">You haven't liked any ideas yet.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-white/10 text-zinc-400 text-sm">
+                                                <th className="pb-3 pl-2">Title</th>
+                                                <th className="pb-3">Category</th>
+                                                <th className="pb-3">Price</th>
+                                                <th className="pb-3">AI Score</th>
+                                                <th className="pb-3"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {likedIdeas.map(item => (
+                                                <tr key={item.idea_id} className="group hover:bg-white/5 transition-colors">
+                                                    <td className="py-4 pl-2 font-medium text-white">{item.title}</td>
+                                                    <td className="py-4 text-zinc-400 text-sm">{item.category || 'N/A'}</td>
+                                                    <td className="py-4 text-green-400 font-mono">${item.price.toLocaleString()}</td>
+                                                    <td className="py-4">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className={`font-bold ${item.overall_score >= 7.5 ? 'text-green-500' : item.overall_score >= 5 ? 'text-yellow-500' : 'text-red-500'}`}>
+                                                                {item.overall_score.toFixed(1)}
+                                                            </span>
+                                                            <span className="text-xs text-zinc-600">/10</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 text-right pr-2">
+                                                        <a
+                                                            href={`/pages/details.html?id=${item.idea_id}`}
+                                                            className="text-zinc-500 hover:text-white transition-colors inline-block"
+                                                        >
+                                                            <ArrowRightIcon className="w-5 h-5" />
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+
+                        {/* Saved Ideas Section */}
+                        <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8 mb-12">
+                            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <BookmarkIcon className="w-5 h-5 text-blue-500" />
+                                Saved Ideas ({savedIdeas.length})
+                            </h2>
+
+                            {savedIdeas.length === 0 ? (
+                                <p className="text-zinc-500 text-sm italic">You haven't saved any ideas yet.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-white/10 text-zinc-400 text-sm">
+                                                <th className="pb-3 pl-2">Title</th>
+                                                <th className="pb-3">Category</th>
+                                                <th className="pb-3">Price</th>
+                                                <th className="pb-3">AI Score</th>
+                                                <th className="pb-3"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {savedIdeas.map(item => (
+                                                <tr key={item.idea_id} className="group hover:bg-white/5 transition-colors">
+                                                    <td className="py-4 pl-2 font-medium text-white">{item.title}</td>
+                                                    <td className="py-4 text-zinc-400 text-sm">{item.category || 'N/A'}</td>
+                                                    <td className="py-4 text-green-400 font-mono">${item.price.toLocaleString()}</td>
+                                                    <td className="py-4">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className={`font-bold ${item.overall_score >= 7.5 ? 'text-green-500' : item.overall_score >= 5 ? 'text-yellow-500' : 'text-red-500'}`}>
+                                                                {item.overall_score.toFixed(1)}
+                                                            </span>
+                                                            <span className="text-xs text-zinc-600">/10</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 text-right pr-2">
+                                                        <a
+                                                            href={`/pages/details.html?id=${item.idea_id}`}
+                                                            className="text-zinc-500 hover:text-white transition-colors inline-block"
+                                                        >
+                                                            <ArrowRightIcon className="w-5 h-5" />
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
             <Footer onNavigate={handleNavigation} />
 
