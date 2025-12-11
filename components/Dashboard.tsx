@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { PencilSquareIcon, TrashIcon, DocumentIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { getUserListings, deleteListing } from '../services/database';
+import { getUserListings, deleteIdeaListing } from '../services/database';
 import type { MarketplaceView } from '../types/database';
 
 interface DashboardProps {
@@ -46,7 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
         setDeletingId(id);
         try {
-            const { error } = await deleteListing(id);
+            const { error } = await deleteIdeaListing(id);
             if (error) throw error;
             // Remove from state
             setListings(prev => prev.filter(item => item.idea_id !== id));

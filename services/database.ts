@@ -500,11 +500,11 @@ export async function getUserListings(userId: string): Promise<{ data: Marketpla
     return { data: marketplaceItems, error: null };
 }
 
-export async function deleteListing(ideaId: string): Promise<{ error: any }> {
-    const { error } = await supabase
-        .from('idea_listing')
-        .delete()
-        .eq('idea_id', ideaId);
-
-    return { error };
+export async function getIdeaDetails(ideaId: string): Promise<{ data: IdeaDetailView | null; error: any }> {
+    const { data, error } = await supabase
+        .from('idea_detail_page')
+        .select('*')
+        .eq('idea_id', ideaId)
+        .single();
+    return { data, error };
 }
