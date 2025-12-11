@@ -44,6 +44,7 @@ export const ChatWidget: React.FC = () => {
     useEffect(() => {
         const handleOpenChat = async (e: Event) => {
             const detail = (e as CustomEvent<OpenChatDetail>).detail;
+            console.log('ChatWidget received open-chat event:', detail);
             if (!detail || !detail.userId) return;
             if (user && detail.userId === user.id) return;
 
@@ -252,8 +253,8 @@ export const ChatWidget: React.FC = () => {
                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                 <div
                                                     className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm break-words ${isMe
-                                                            ? 'bg-green-600 text-white rounded-tr-sm'
-                                                            : 'bg-zinc-800 text-zinc-200 rounded-tl-sm'
+                                                        ? 'bg-green-600 text-white rounded-tr-sm'
+                                                        : 'bg-zinc-800 text-zinc-200 rounded-tl-sm'
                                                         }`}
                                                 >
                                                     {msg.content}

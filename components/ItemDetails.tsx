@@ -144,14 +144,18 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
     const handleContactSeller = () => {
         if (!currentUser) return alert('Please log in to message the seller.');
         if (!item) return;
+
+        console.log('Contact Seller clicked', { currentUserId: currentUser.id, sellerId: item.user_id });
+
         if (currentUser.id === item.user_id) return alert('You cannot message yourself.');
 
         window.dispatchEvent(new CustomEvent('ida:open-chat', {
             detail: {
                 userId: item.user_id,
-                userName: item.username // We use username as display name if full name not available
+                userName: item.username
             }
         }));
+        console.log('Dispatching open-chat event');
     };
 
     return (
