@@ -128,8 +128,7 @@ export const NavBar: React.FC<NavBarProps> = ({ currentPage, user, onLogout, onN
 
                   <button
                     onClick={() => {
-                      // Dashboard logic here if separate
-                      onNavigate('profile');
+                      onNavigate('dashboard');
                       setIsDropdownOpen(false);
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-3"
