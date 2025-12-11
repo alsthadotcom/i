@@ -151,6 +151,15 @@ export const ChatWidget: React.FC = () => {
         };
     }, [user]);
 
+    // Polling Backup: Refresh every 1 second
+    useEffect(() => {
+        if (!user || !isOpen) return; // Only poll when open
+        const interval = setInterval(() => {
+            fetchMessages(true); // true = silent refresh (no loading spinner)
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [user, isOpen]);
+
     // Mark as read when opening a thread
     useEffect(() => {
         if (view === 'thread' && activeThreadId && user) {
@@ -168,12 +177,12 @@ export const ChatWidget: React.FC = () => {
         }
     }, [view, activeThreadId, conversations]);
 
-    const fetchMessages = async () => {
+    const fetchMessages = async (silent: boolean = false) => {
         if (!user) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         const { conversations: data } = await ChatService.fetchConversations(user.id);
         setConversations(data);
-        setLoading(false);
+        if (!silent) setLoading(false);
     };
 
     const handleIncomingMessage = async (msg: Message) => {
