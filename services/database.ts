@@ -400,20 +400,44 @@ export async function getIdeaDetailById(ideaId: string): Promise<{ data: IdeaDet
     if (error) return { data: null, error };
     if (!viewData) return { data: null, error: null };
 
-    // Patch: Ensure user_id is present (in case the View maps it differently or is missing it)
-    // We fetch it directly from the source table 'ideas'
+    // Patch: Ensure user_id is present
     let finalData = { ...viewData } as IdeaDetailView;
 
-    if (!finalData.user_id) {
+    // Strategy 1: Already has user_id?
+    if (finalData.user_id) return { data: finalData, error: null };
+
+    // Strategy 2: Fetch from 'ideas' table (might fail if RLS)
+    try {
         const { data: ideaData } = await supabase
             .from('ideas')
             .select('user_id')
             .eq('idea_id', ideaId)
-            .single();
+            .maybeSingle(); // Use maybeSingle to avoid 404 invalidating the whole flow
 
-        if (ideaData) {
+        if (ideaData && ideaData.user_id) {
             finalData.user_id = ideaData.user_id;
+            console.log('Patched user_id from ideas table:', ideaData.user_id);
+            return { data: finalData, error: null };
         }
+    } catch (e) { console.warn('Strategy 2 failed', e); }
+
+    // Strategy 3: Fetch from 'user_info' table via username (Reliable Fallback)
+    if (finalData.username) {
+        try {
+            // Strip @ if possibly duplicated logic (though DB usually stores with @)
+            // But we'll use strict equality first
+            const { data: userData } = await supabase
+                .from('user_info')
+                .select('user_id')
+                .eq('username', finalData.username) // Assumes username in view matches user_info
+                .maybeSingle();
+
+            if (userData && userData.user_id) {
+                finalData.user_id = userData.user_id;
+                console.log('Patched user_id from user_info table:', userData.user_id);
+                return { data: finalData, error: null };
+            }
+        } catch (e) { console.warn('Strategy 3 failed', e); }
     }
 
     return { data: finalData, error: null };
