@@ -34,6 +34,7 @@ const ProfilePage = () => {
 
     // View Mode
     const [isPublicView, setIsPublicView] = useState(false);
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
 
     // Fetch user info from database
     // Fetch user info from database
@@ -376,7 +377,16 @@ const ProfilePage = () => {
                     )}
 
                     {/* Footer Navigation */}
-                    <div className="mt-10 pt-4 flex justify-end">
+                    <div className="mt-10 pt-4 flex justify-between items-center">
+                        {!isPublicView && (
+                            <button
+                                onClick={() => setShowSecurityModal(true)}
+                                className="bg-zinc-800 text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-zinc-700 transition-colors"
+                            >
+                                Forgot Password
+                            </button>
+                        )}
+
                         <button
                             onClick={handleSave}
                             disabled={isSaving || editUsername === userInfo.username}
@@ -387,65 +397,6 @@ const ProfilePage = () => {
                     </div>
 
                 </div>
-
-                {/* Security / Password Card - Private Only */}
-                {!isPublicView && (
-                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <LockClosedIcon className="w-5 h-5 text-zinc-400" />
-                            Security
-                        </h2>
-
-                        <div className="space-y-4 max-w-md">
-                            <div>
-                                <label className="block text-xs font-semibold text-zinc-500 mb-2">Current Password</label>
-                                <input
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
-                                    placeholder="Enter current password"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-zinc-500 mb-2">New Password <span className="text-zinc-600 font-normal">(8-15 chars, letters, numbers, symbols)</span></label>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
-                                    placeholder="Enter new password"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-zinc-500 mb-2">Confirm New Password</label>
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
-                                    placeholder="Retype new password"
-                                />
-                            </div>
-
-                            {passwordMessage && (
-                                <div className={`p-3 rounded-lg text-sm ${passwordMessage.type === 'success' ? 'text-green-400 bg-green-500/10 border border-green-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}`}>
-                                    {passwordMessage.text}
-                                </div>
-                            )}
-
-                            <div className="pt-2">
-                                <button
-                                    onClick={handleUpdatePassword}
-                                    disabled={isUpdatingPassword || !currentPassword || !newPassword}
-                                    className="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Selling Ideas Section */}
                 <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 mt-8">
@@ -590,6 +541,76 @@ const ProfilePage = () => {
                     </>
                 )}
             </div>
+            {/* Security Modal */}
+            {showSecurityModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-md w-full relative shadow-2xl animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowSecurityModal(false)}
+                            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <LockClosedIcon className="w-5 h-5 text-zinc-400" />
+                            Security Settings
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 mb-2">Current Password</label>
+                                <input
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
+                                    placeholder="Enter current password"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 mb-2">New Password <span className="text-zinc-600 font-normal">(8-15 chars, letters, numbers, symbols)</span></label>
+                                <input
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
+                                    placeholder="Enter new password"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 mb-2">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-zinc-700 transition-colors"
+                                    placeholder="Retype new password"
+                                />
+                            </div>
+
+                            {passwordMessage && (
+                                <div className={`p-3 rounded-lg text-sm ${passwordMessage.type === 'success' ? 'text-green-400 bg-green-500/10 border border-green-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20'}`}>
+                                    {passwordMessage.text}
+                                </div>
+                            )}
+
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleUpdatePassword}
+                                    disabled={isUpdatingPassword || !currentPassword || !newPassword}
+                                    className="w-full bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer onNavigate={handleNavigation} />
 
         </div>
