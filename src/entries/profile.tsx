@@ -257,7 +257,7 @@ const ProfilePage = () => {
         <div className="min-h-screen bg-black text-white selection:bg-green-500/30 font-sans flex flex-col">
             <NavBar user={user} onLogout={handleLogout} onNavigate={handleNavigation} currentPage="profile" />
 
-            <div className="w-full max-w-2xl mx-auto pt-32 px-4 animate-in fade-in duration-500">
+            <div className="w-full max-w-2xl mx-auto pt-32 px-4 pb-20 animate-in fade-in duration-500">
 
                 {/* Page Header */}
                 <div className="mb-8">
@@ -445,8 +445,14 @@ const ProfilePage = () => {
             </div>
             {/* Security Modal */}
             {showSecurityModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-md w-full relative shadow-2xl animate-in zoom-in-95 duration-200">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowSecurityModal(false)}
+                >
+                    <div
+                        className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-md w-full relative shadow-2xl animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setShowSecurityModal(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
@@ -515,8 +521,14 @@ const ProfilePage = () => {
 
             {/* Selling Modal */}
             {showSellingModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowSellingModal(false)}
+                >
+                    <div
+                        className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setShowSellingModal(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
@@ -565,8 +577,14 @@ const ProfilePage = () => {
 
             {/* Liked Modal */}
             {showLikedModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-5xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowLikedModal(false)}
+                >
+                    <div
+                        className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-5xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setShowLikedModal(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
@@ -629,8 +647,14 @@ const ProfilePage = () => {
 
             {/* Saved Modal */}
             {showSavedModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-5xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowSavedModal(false)}
+                >
+                    <div
+                        className="bg-[#09090b] border border-zinc-800 rounded-xl p-8 max-w-5xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setShowSavedModal(false)}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
