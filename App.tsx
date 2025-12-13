@@ -206,7 +206,7 @@ const App: React.FC = () => {
           min-h-full flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 relative z-10 
           transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1)
           ${isFocused
-            ? 'opacity-0 scale-95 blur-sm pointer-events-none h-[100dvh] overflow-hidden'
+            ? 'opacity-0 scale-95 blur-sm h-[100dvh] overflow-hidden'
             : 'opacity-100 scale-100 blur-0'
           }
         `}
@@ -226,7 +226,6 @@ const App: React.FC = () => {
                 <InputArea
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
-                  disabled={isFocused}
                   onNavigate={() => setCurrentPage('signup')}
                 />
               </div>

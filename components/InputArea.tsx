@@ -44,8 +44,9 @@ const CyclingText = () => {
 };
 
 export const InputArea: React.FC<InputAreaProps> = ({ isGenerating = false, onNavigate, disabled = false }) => {
-  const handleClick = () => {
-    if (!disabled && onNavigate) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onNavigate) {
       onNavigate();
     }
   };
@@ -77,14 +78,16 @@ export const InputArea: React.FC<InputAreaProps> = ({ isGenerating = false, onNa
 
           <div className="relative z-10 flex flex-col items-center text-center space-y-6 md:space-y-8 p-6 md:p-8 w-full">
             <div
-              onClick={handleClick}
-              className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-transform duration-500 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'} group/icon`}
+              className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-transform duration-500 ${disabled ? 'opacity-50' : 'hover:scale-110'} group/icon`}
             >
-              <div className={`absolute inset-0 rounded-2xl bg-zinc-800 border border-zinc-700 shadow-xl flex items-center justify-center transition-all ${isGenerating ? 'animate-pulse' : 'group-hover/icon:border-green-500 group-hover/icon:bg-zinc-700'}`}>
+              <div className={`absolute inset-0 rounded-2xl bg-zinc-800 border border-zinc-700 shadow-xl flex items-center justify-center transition-all pointer-events-none ${isGenerating ? 'animate-pulse' : 'group-hover/icon:border-green-500 group-hover/icon:bg-zinc-700'}`}>
                 {isGenerating ? (
-                  <CurrencyDollarIcon className="w-8 h-8 md:w-10 md:h-10 text-green-400 animate-spin-slow" />
+                  <CurrencyDollarIcon className="w-8 h-8 md:w-10 md:h-10 text-green-400 animate-spin-slow pointer-events-none" />
                 ) : (
-                  <ArrowUpTrayIcon className="w-8 h-8 md:w-10 md:h-10 text-zinc-300 group-hover/icon:text-green-400 transition-colors" />
+                  <ArrowUpTrayIcon
+                    onClick={handleClick}
+                    className="w-8 h-8 md:w-10 md:h-10 text-zinc-300 group-hover/icon:text-green-400 transition-colors cursor-pointer pointer-events-auto"
+                  />
                 )}
               </div>
             </div>
