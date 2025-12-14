@@ -3,15 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeftIcon, DocumentPlusIcon, PhotoIcon, VideoCameraIcon, XMarkIcon, SparklesIcon, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import {
+    ArrowLeftIcon,
+    DocumentPlusIcon,
+    XMarkIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    ChevronRightIcon,
+    ChevronLeftIcon,
+    CheckCircleIcon as CheckCircleIconOutline
+} from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 import { analyzeAssetScores } from '../services/gemini';
 import { createIdeaListing, createAIScoring, uploadDocument, getIdeaDetails, updateIdeaListing, updateAIScoring } from '../services/database';
 import { supabase } from '../services/supabase';
-import type { DemandLevel, IdeaDetailView } from '../types/database';
-// import { CATEGORIES } from '../constants/categories'; 
-// import { suggestCategory } from '../services/analyzeBusinessModel';
-// import { CategoryDropdown } from './CategoryDropdown';
+import type { DemandLevel } from '../types/database';
 
+// --- Constants ---
 const INDUSTRIES = ["Technology", "Finance", "Health", "Education", "Ecommerce", "Media & Content", "Real Estate", "Logistics", "Agriculture", "Energy", "Other"];
 const CUSTOMER_TYPES = ["Consumers (B2C)", "Businesses (B2B)", "Enterprises", "Governments / NGOs", "Creators / Freelancers", "Mixed"];
 const STAGES = ["Idea / Concept", "Validated (research/interviews)", "MVP built", "Revenue generating"];
@@ -21,7 +29,7 @@ const MARKET_SIZES = ["Small (niche)", "Medium", "Large"];
 const MARKET_GROWTH_TRENDS = ["Declining", "Stable", "Growing"];
 const GEOGRAPHIC_SCOPES = ["Local", "National", "Global"];
 const REVENUE_MODELS = ["Subscription", "One-time purchase", "Commission / Marketplace fee", "Advertising", "Licensing", "Usage-based"];
-const PRICE_PER_CUSTOMER = ["Under $10", "50", "200", "1,000", "$1,000+"];
+const PRICE_PER_CUSTOMER = ["Under $10", "$10–$50", "$50–$200", "$200–$1,000", "$1,000+"];
 const COST_INTENSITIES = ["Low", "Medium", "High"];
 const BUILD_DIFFICULTIES = ["Easy", "Medium", "Hard"];
 const TIMES_TO_VERSION = ["Under 1 month", "1–3 months", "3–6 months", "6+ months"];
@@ -30,9 +38,8 @@ const VALIDATION_LEVELS = ["None", "Customer interviews", "Survey data", "Waitli
 const WHATS_INCLUDED = ["Idea only", "Idea + framework", "Full execution plan"];
 const BUYER_RIGHTS = ["Yes (allowed)", "No"];
 const EXCLUSIVITIES = ["Exclusive sale", "Non-exclusive sale"];
-const PAIN_LEVELS = [1, 2, 3, 4, 5];
-const DIFF_STRENGTHS = [1, 2, 3, 4, 5];
 
+// --- Interfaces ---
 interface SellIdeaProps {
     onBack: () => void;
 }
@@ -50,22 +57,43 @@ interface AIScores {
     scalability: number;
 }
 
-// Custom Dropdown Component
-interface CustomDropdownProps {
-    value: string;
-    options: string[];
-    onChange: (value: string) => void;
-    placeholder?: string;
-}
+// --- Reusable Form Components (from Reference) ---
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChange, placeholder = "Select an option" }) => {
+const Label = ({ children }: { children?: React.ReactNode }) => (
+    <label className="block text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider text-[10px]">
+        {children}
+    </label>
+);
+
+const Input = ({ value, onChange, placeholder, maxLength, type = "text" }: any) => (
+    <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        className="w-full bg-zinc-950/50 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[#22C55E] focus:ring-1 focus:ring-[#22C55E] focus:outline-none transition-colors"
+    />
+);
+
+const TextArea = ({ value, onChange, placeholder, rows = 4 }: any) => (
+    <textarea
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full bg-zinc-950/50 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[#22C55E] focus:ring-1 focus:ring-[#22C55E] focus:outline-none transition-colors resize-none"
+    />
+);
+
+const Select = ({ value, onChange, options, placeholder = "Choose an option" }: { value: string, onChange: (val: string) => void, options: string[], placeholder?: string }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Close on click outside
+    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         };
@@ -73,51 +101,109 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleSelect = (option: string) => {
+        onChange(option);
+        setIsOpen(false);
+    };
+
     return (
-        <div className="relative" ref={dropdownRef}>
-            <div
+        <div className="relative group" ref={containerRef}>
+            <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full bg-zinc-950/50 border rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer transition-all ${isOpen || value ? 'border-green-500' : 'border-zinc-700 hover:border-zinc-500'
-                    }`}
+                className={`
+              w-full text-left flex items-center justify-between
+              bg-zinc-950/50 border rounded-lg px-4 py-3 
+              transition-all duration-200 ease-in-out
+              focus:outline-none
+              ${isOpen
+                        ? 'border-[#22C55E] ring-1 ring-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.1)]'
+                        : 'border-zinc-700 hover:border-zinc-500'
+                    }
+          `}
             >
-                <span className={value ? 'text-white' : 'text-zinc-500'}>
+                <span className={`block truncate ${value ? 'text-zinc-100' : 'text-zinc-500'}`}>
                     {value || placeholder}
                 </span>
-                {isOpen ? (
-                    <ChevronUpIcon className="w-4 h-4 text-green-500" />
-                ) : (
-                    <ChevronDownIcon className="w-4 h-4 text-zinc-500" />
-                )}
-            </div>
+                <ChevronDownIcon
+                    className={`
+                  h-4 w-4 transition-transform duration-300
+                  ${isOpen ? 'rotate-180 text-[#22C55E]' : 'text-zinc-500 group-hover:text-zinc-300'}
+              `}
+                />
+            </button>
 
+            {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-zinc-950 border border-zinc-800 rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                    <div className="max-h-60 overflow-y-auto">
-                        {options.map((opt) => {
-                            const isSelected = opt === value;
-                            return (
-                                <div
-                                    key={opt}
-                                    onClick={() => {
-                                        onChange(opt);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`px-4 py-3 cursor-pointer flex justify-between items-center transition-colors ${isSelected
-                                            ? 'bg-green-500/10 text-green-500'
-                                            : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
-                                        }`}
-                                >
-                                    <span>{opt}</span>
-                                    {isSelected && <CheckCircleIcon className="w-5 h-5 text-green-500" />}
-                                </div>
-                            );
-                        })}
+                <div
+                    className="absolute z-50 w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                >
+                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                        {options.map((opt) => (
+                            <div
+                                key={opt}
+                                onClick={() => handleSelect(opt)}
+                                className={`
+                      relative px-4 py-3 cursor-pointer text-sm transition-colors border-b border-zinc-900 last:border-0 flex items-center justify-between
+                      ${value === opt
+                                        ? 'bg-[#22C55E]/10 text-[#22C55E]'
+                                        : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'
+                                    }
+                  `}
+                            >
+                                <span className="font-medium">{opt}</span>
+                                {value === opt && (
+                                    <CheckCircleIconSolid className="w-4 h-4 text-[#22C55E]" />
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
         </div>
     );
 };
+
+const Range = ({ value, onChange, min, max, labels }: any) => {
+    const val = value ? parseInt(value) : min;
+    const percentage = ((val - min) / (max - min)) * 100;
+
+    return (
+        <div className="w-full py-2">
+            {/* Labels */}
+            <div className="flex justify-between mb-3 text-[10px] text-zinc-500 font-mono uppercase tracking-widest">
+                <span className={val === min ? 'text-[#22C55E] font-bold' : 'transition-colors'}>{labels?.[0] || min}</span>
+                <span className={val === max ? 'text-[#22C55E] font-bold' : 'transition-colors'}>{labels?.[1] || max}</span>
+            </div>
+
+            {/* Slider Container */}
+            <div className="relative h-6 flex items-center group">
+                <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    value={val}
+                    onChange={onChange}
+                    className="custom-range w-full h-2 rounded-lg cursor-pointer focus:outline-none appearance-none bg-zinc-800"
+                    style={{
+                        // Dynamic linear gradient to create the "fill" effect
+                        background: `linear-gradient(to right, #22C55E 0%, #22C55E ${percentage}%, #27272a ${percentage}%, #27272a 100%)`
+                    }}
+                />
+                {/* Thumb styling is usually handled via CSS (index.css), assuming standard Tailwind/browser behavior or specific global styles */}
+            </div>
+
+            {/* Value Display */}
+            <div className="mt-1 flex justify-center">
+                <div className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] font-bold font-mono text-sm shadow-[0_0_10px_rgba(34,197,94,0.1)]">
+                    <span>{val}</span>
+                    <span className="text-zinc-600 font-light mx-1">/</span>
+                    <span className="text-zinc-500">{max}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     // --- State ---
@@ -127,45 +213,45 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     // Idea Snapshot
     const [title, setTitle] = useState('');
     const [oneLineDescription, setOneLineDescription] = useState('');
-    const [industry, setIndustry] = useState(INDUSTRIES[0]);
-    const [targetCustomer, setTargetCustomer] = useState(CUSTOMER_TYPES[0]);
-    const [stage, setStage] = useState(STAGES[0]);
+    const [industry, setIndustry] = useState('');
+    const [targetCustomer, setTargetCustomer] = useState('');
+    const [stage, setStage] = useState('');
 
     // Problem & Urgency
     const [problemDescription, setProblemDescription] = useState('');
     const [whoFacesProblem, setWhoFacesProblem] = useState('');
     const [painLevel, setPainLevel] = useState(1);
-    const [urgencyLevel, setUrgencyLevel] = useState(URGENCY_LEVELS[0]);
+    const [urgencyLevel, setUrgencyLevel] = useState('');
     const [currentAlternatives, setCurrentAlternatives] = useState('');
 
     // Solution & Advantage
     const [solutionSummary, setSolutionSummary] = useState('');
-    const [primaryAdvantage, setPrimaryAdvantage] = useState(PRIMARY_ADVANTAGES[0]);
+    const [primaryAdvantage, setPrimaryAdvantage] = useState('');
     const [differentiationStrength, setDifferentiationStrength] = useState(1);
 
     // Market Potential
-    const [marketSize, setMarketSize] = useState(MARKET_SIZES[0]);
-    const [marketGrowthTrend, setMarketGrowthTrend] = useState(MARKET_GROWTH_TRENDS[1]); // Stable default
-    const [geographicScope, setGeographicScope] = useState(GEOGRAPHIC_SCOPES[1]); // National default
+    const [marketSize, setMarketSize] = useState('');
+    const [marketGrowthTrend, setMarketGrowthTrend] = useState(''); // Stable default no longer default
+    const [geographicScope, setGeographicScope] = useState(''); // National default no longer default
 
     // Revenue Model
-    const [revenueModelType, setRevenueModelType] = useState(REVENUE_MODELS[0]);
-    const [expectedPricePerCustomer, setExpectedPricePerCustomer] = useState(PRICE_PER_CUSTOMER[1]);
-    const [costIntensity, setCostIntensity] = useState(COST_INTENSITIES[1]);
+    const [revenueModelType, setRevenueModelType] = useState('');
+    const [expectedPricePerCustomer, setExpectedPricePerCustomer] = useState('');
+    const [costIntensity, setCostIntensity] = useState('');
 
     // Execution Difficulty
-    const [buildDifficulty, setBuildDifficulty] = useState(BUILD_DIFFICULTIES[1]);
-    const [timeToFirstVersion, setTimeToFirstVersion] = useState(TIMES_TO_VERSION[1]);
-    const [regulatoryDependency, setRegulatoryDependency] = useState(REGULATORY_DEPENDENCIES[0]);
+    const [buildDifficulty, setBuildDifficulty] = useState('');
+    const [timeToFirstVersion, setTimeToFirstVersion] = useState('');
+    const [regulatoryDependency, setRegulatoryDependency] = useState('');
 
     // Validation
-    const [validationLevel, setValidationLevel] = useState(VALIDATION_LEVELS[0]);
+    const [validationLevel, setValidationLevel] = useState('');
     const [validationNotes, setValidationNotes] = useState('');
 
     // Sale & Rights
-    const [whatIsIncluded, setWhatIsIncluded] = useState(WHATS_INCLUDED[0]);
-    const [buyerResaleRights, setBuyerResaleRights] = useState(BUYER_RIGHTS[0]);
-    const [exclusivity, setExclusivity] = useState(EXCLUSIVITIES[0]);
+    const [whatIsIncluded, setWhatIsIncluded] = useState('');
+    const [buyerResaleRights, setBuyerResaleRights] = useState('');
+    const [exclusivity, setExclusivity] = useState('');
 
     // Metadata
     const [price, setPrice] = useState(''); // Asking Price
@@ -202,7 +288,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     const [currentStep, setCurrentStep] = useState(1);
     const TOTAL_STEPS = 8;
 
-    const steps = [
+    const stepTitles = [
         "Idea Snapshot",
         "Problem & Urgency",
         "Solution & Advantage",
@@ -212,6 +298,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         "Sale & Rights",
         "Supporting Documents"
     ];
+
 
     // --- Effects ---
 
@@ -224,10 +311,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             loadListingData(id);
         }
     }, []);
-
-    // Auto-resize textarea (Simple generic approach or removed if using fixed rows)
-    // We have multiple textareas now, so one ref won't work for all unless we manage multiple or use a library.
-    // For now, removing the auto-resize for the single 'description' field.
 
     const loadListingData = async (id: string) => {
         setIsLoadingData(true);
@@ -282,7 +365,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             setHasMVP(data.mvp);
 
             // Populate Scores
-            // We use dummy profitability since it's not visualized in the CircularScore components currently
             if (data.uniqueness !== undefined) {
                 setScores({
                     uniqueness: data.uniqueness || 0,
@@ -449,8 +531,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         setExistingMvpMedia(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Removed handleCategoryModeChange
-
 
     // --- Validation & Limits ---
 
@@ -521,7 +601,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 additionalDocUrls.push(data!.url);
             }
 
-            // 2. Prepare Data
             // 2. Prepare Data
             const listingData = {
                 title,
@@ -621,7 +700,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             }
 
             // Redirect
-            // Redirect
             onBack();
 
         } catch (error: any) {
@@ -637,18 +715,30 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     const isStepValid = useMemo(() => {
         switch (currentStep) {
             case 1: // Snapshot
-                return title.trim().length > 0 && oneLineDescription.trim().length > 0;
+                return title.trim().length > 0 &&
+                    oneLineDescription.trim().length > 0 &&
+                    industry !== '' &&
+                    targetCustomer !== '' &&
+                    stage !== '';
             case 2: // Problem
-                return problemDescription.trim().length > 0;
+                return problemDescription.trim().length > 0 && urgencyLevel !== '';
             case 3: // Solution
-                return solutionSummary.trim().length > 0;
+                return solutionSummary.trim().length > 0 && primaryAdvantage !== '';
+            case 4: // Market Potential
+                return marketSize !== '' && marketGrowthTrend !== '' && geographicScope !== '';
+            case 5: // Revenue Model
+                return revenueModelType !== '' && expectedPricePerCustomer !== '' && costIntensity !== '';
+            case 6: // Execution & Validation
+                return buildDifficulty !== '' && timeToFirstVersion !== '' && regulatoryDependency !== '' && validationLevel !== '';
+            case 7: // Sale & Rights
+                return whatIsIncluded !== '' && buyerResaleRights !== '' && exclusivity !== '' && isPriceValid;
             case 8: // Documents
                 // valid if existing OR new
                 return (mainDocument !== null || existingMainDocUrl !== null);
             default:
                 return true;
         }
-    }, [currentStep, title, oneLineDescription, problemDescription, solutionSummary, mainDocument, existingMainDocUrl]);
+    }, [currentStep, title, oneLineDescription, industry, targetCustomer, stage, problemDescription, urgencyLevel, solutionSummary, primaryAdvantage, marketSize, marketGrowthTrend, geographicScope, revenueModelType, expectedPricePerCustomer, costIntensity, buildDifficulty, timeToFirstVersion, regulatoryDependency, validationLevel, whatIsIncluded, buyerResaleRights, exclusivity, isPriceValid, mainDocument, existingMainDocUrl]);
 
     const handleNext = () => {
         if (currentStep < TOTAL_STEPS && isStepValid) {
@@ -666,9 +756,6 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
 
     // --- Helper Components ---
     const CircularScore = ({ label, value }: { label: string, value: number }) => {
-        // ... existing implementation
-        // To save characters, I'll inline simplified SVGs or copy from previous if space permits.
-        // Rewriting it simplified.
         const radius = 30;
         const circumference = 2 * Math.PI * radius;
         const offset = circumference - (value / 100) * circumference;
@@ -694,334 +781,302 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
 
     return (
         <div className="w-full max-w-4xl mx-auto px-4 pt-24 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            {/* Top Navigation */}
             <button onClick={onBack} className="group flex items-center space-x-2 text-zinc-500 hover:text-white mb-8 transition-colors">
                 <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-1" />
                 <span className="text-sm font-medium">Cancel</span>
             </button>
 
-            <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-6 md:p-10 shadow-2xl min-h-[600px] flex flex-col">
-                <div className="mb-8">
-                    <div className="text-center mb-6">
-                        <h1 className="text-3xl font-bold text-white mb-2">{editId ? 'Edit Listing' : 'List Your Idea'}</h1>
-                        <p className="text-zinc-400">Complete the valuation framework to list your concept on the market.</p>
-                    </div>
-
-                    <div className="flex justify-between items-end mb-2">
-                        <span className="text-xs font-mono text-green-500 uppercase tracking-wider">Step {currentStep} of {TOTAL_STEPS}</span>
-                        <span className="text-xs text-zinc-500">{Math.round((currentStep / TOTAL_STEPS) * 100)}% Completed</span>
-                    </div>
-                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-green-500 transition-all duration-500 ease-out"
-                            style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
-                        />
-                    </div>
+            {/* Progress Header */}
+            <div className="mb-8 max-w-2xl mx-auto">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[#22C55E] font-mono text-xs uppercase tracking-wider">Step {currentStep} of {TOTAL_STEPS}</span>
+                    <span className="text-zinc-500 text-xs">{Math.round((currentStep / TOTAL_STEPS) * 100)}% Completed</span>
                 </div>
+                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-[#22C55E] transition-all duration-500 ease-out"
+                        style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
+                    />
+                </div>
+            </div>
 
-                {submitError && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6 text-red-500 text-sm">{submitError}</div>
-                )}
+            {/* Main Card */}
+            <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden min-h-[600px] flex flex-col max-w-2xl mx-auto">
+                {/* Subtle Green Glow */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[#22C55E]/10 blur-[80px] rounded-full pointer-events-none"></div>
 
-                <div className="flex-grow space-y-8">
+                <div className="relative z-10 flex flex-col flex-grow">
+                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 text-sm font-mono text-[#22C55E]">
+                            {currentStep}
+                        </span>
+                        {stepTitles[currentStep - 1]}
+                    </h2>
 
-                    {/* 1. Idea Snapshot */}
-                    {currentStep === 1 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Idea Snapshot</h2>
-
-                            <div className="grid md:grid-cols-1 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Idea Title <span className="text-red-500">*</span></label>
-                                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 transition-colors" placeholder="e.g. Uber for Dog Walking" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">One-line Description <span className="text-red-500">*</span> <span className="text-xs text-zinc-500">(Max 200 chars)</span></label>
-                                    <input type="text" maxLength={200} value={oneLineDescription} onChange={(e) => setOneLineDescription(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 transition-colors" placeholder="A brief hook for your idea..." />
-                                </div>
-                            </div>
-
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Industry / Category</label>
-                                    <CustomDropdown value={industry} options={INDUSTRIES} onChange={setIndustry} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Target Customer Type</label>
-                                    <CustomDropdown value={targetCustomer} options={CUSTOMER_TYPES} onChange={setTargetCustomer} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Stage</label>
-                                    <CustomDropdown value={stage} options={STAGES} onChange={setStage} />
-                                </div>
-                            </div>
-                        </div>
+                    {submitError && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6 text-red-500 text-sm">{submitError}</div>
                     )}
 
-                    {/* 2. Problem & Urgency */}
-                    {currentStep === 2 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Problem & Urgency</h2>
-
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-300 mb-1">Problem Description <span className="text-red-500">*</span></label>
-                                <textarea value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none min-h-[100px]" placeholder="Describe the core problem this idea solves..."></textarea>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-300 mb-1">Who Faces This Problem?</label>
-                                <input type="text" value={whoFacesProblem} onChange={(e) => setWhoFacesProblem(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none" placeholder="Specific persona or demographic" />
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-6">
+                    <div className="flex-grow space-y-8">
+                        {/* 1. Idea Snapshot */}
+                        {currentStep === 1 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Pain Level (1-5)</label>
-                                    <div className="flex gap-4 items-center">
-                                        <input type="range" min="1" max="5" value={painLevel} onChange={(e) => setPainLevel(parseInt(e.target.value))} className="w-full accent-green-500" />
-                                        <span className="text-white font-bold w-4">{painLevel}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-zinc-500 mt-1"><span>Minor</span><span>Critical</span></div>
+                                    <Label>Idea Title <span className="text-red-500">*</span></Label>
+                                    <Input value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Uber for Dog Walking" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Urgency Level</label>
-                                    <CustomDropdown value={urgencyLevel} options={URGENCY_LEVELS} onChange={setUrgencyLevel} />
+                                    <Label>One-line Description <span className="text-red-500">*</span> <span className="text-xs text-zinc-500 ml-1">(Max 200 chars)</span></Label>
+                                    <Input value={oneLineDescription} onChange={(e: any) => setOneLineDescription(e.target.value)} maxLength={200} placeholder="A brief hook for your idea..." />
+                                </div>
+                                <div>
+                                    <Label>Industry / Category</Label>
+                                    <Select value={industry} onChange={setIndustry} options={INDUSTRIES} />
+                                </div>
+                                <div>
+                                    <Label>Target Customer Type</Label>
+                                    <Select value={targetCustomer} onChange={setTargetCustomer} options={CUSTOMER_TYPES} />
+                                </div>
+                                <div>
+                                    <Label>Stage</Label>
+                                    <Select value={stage} onChange={setStage} options={STAGES} />
                                 </div>
                             </div>
+                        )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-300 mb-1">Current Alternatives</label>
-                                <input type="text" value={currentAlternatives} onChange={(e) => setCurrentAlternatives(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none" placeholder="How do people solve this now?" />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 3. Solution & Advantage */}
-                    {currentStep === 3 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Solution & Advantage</h2>
-
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-300 mb-1">Solution Summary <span className="text-red-500">*</span></label>
-                                <textarea value={solutionSummary} onChange={(e) => setSolutionSummary(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none min-h-[100px]" placeholder="How does your idea solve the problem?"></textarea>
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-6">
+                        {/* 2. Problem & Urgency */}
+                        {currentStep === 2 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Primary Advantage</label>
-                                    <CustomDropdown value={primaryAdvantage} options={PRIMARY_ADVANTAGES} onChange={setPrimaryAdvantage} />
+                                    <Label>Problem Description <span className="text-red-500">*</span></Label>
+                                    <TextArea value={problemDescription} onChange={(e: any) => setProblemDescription(e.target.value)} placeholder="Describe the core problem this idea solves..." />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Differentiation Strength (1-5)</label>
-                                    <div className="flex gap-4 items-center">
-                                        <input type="range" min="1" max="5" value={differentiationStrength} onChange={(e) => setDifferentiationStrength(parseInt(e.target.value))} className="w-full accent-green-500" />
-                                        <span className="text-white font-bold w-4">{differentiationStrength}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-zinc-500 mt-1"><span>Weak</span><span>Strong</span></div>
+                                    <Label>Who Faces This Problem?</Label>
+                                    <Input value={whoFacesProblem} onChange={(e: any) => setWhoFacesProblem(e.target.value)} placeholder="Specific persona or demographic" />
+                                </div>
+                                <div>
+                                    <Label>Pain Level (1-5)</Label>
+                                    <Range value={painLevel} onChange={(e: any) => setPainLevel(parseInt(e.target.value))} min={1} max={5} labels={["Minor", "Critical"]} />
+                                </div>
+                                <div>
+                                    <Label>Urgency Level</Label>
+                                    <Select value={urgencyLevel} onChange={setUrgencyLevel} options={URGENCY_LEVELS} />
+                                </div>
+                                <div>
+                                    <Label>Current Alternatives</Label>
+                                    <Input value={currentAlternatives} onChange={(e: any) => setCurrentAlternatives(e.target.value)} placeholder="How do people solve this now?" />
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* 4. Market Potential */}
-                    {currentStep === 4 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Market Potential (Rough)</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
+                        {/* 3. Solution & Advantage */}
+                        {currentStep === 3 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Market Size</label>
-                                    <CustomDropdown value={marketSize} options={MARKET_SIZES} onChange={setMarketSize} />
+                                    <Label>Solution Summary <span className="text-red-500">*</span></Label>
+                                    <TextArea value={solutionSummary} onChange={(e: any) => setSolutionSummary(e.target.value)} placeholder="How does your idea solve the problem?" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Growth Trend</label>
-                                    <CustomDropdown value={marketGrowthTrend} options={MARKET_GROWTH_TRENDS} onChange={setMarketGrowthTrend} />
+                                    <Label>Primary Advantage</Label>
+                                    <Select value={primaryAdvantage} onChange={setPrimaryAdvantage} options={PRIMARY_ADVANTAGES} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Geographic Scope</label>
-                                    <CustomDropdown value={geographicScope} options={GEOGRAPHIC_SCOPES} onChange={setGeographicScope} />
+                                    <Label>Differentiation Strength (1-5)</Label>
+                                    <Range value={differentiationStrength} onChange={(e: any) => setDifferentiationStrength(parseInt(e.target.value))} min={1} max={5} labels={["Weak", "Strong"]} />
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* 5. Revenue Model */}
-                    {currentStep === 5 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Revenue Model</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
+                        {/* 4. Market Potential */}
+                        {currentStep === 4 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Revenue Type</label>
-                                    <CustomDropdown value={revenueModelType} options={REVENUE_MODELS} onChange={setRevenueModelType} />
+                                    <Label>Market Size</Label>
+                                    <Select value={marketSize} onChange={setMarketSize} options={MARKET_SIZES} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Expected Price / Customer</label>
-                                    <CustomDropdown value={expectedPricePerCustomer} options={PRICE_PER_CUSTOMER} onChange={setExpectedPricePerCustomer} />
+                                    <Label>Growth Trend</Label>
+                                    <Select value={marketGrowthTrend} onChange={setMarketGrowthTrend} options={MARKET_GROWTH_TRENDS} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Cost Intensity</label>
-                                    <CustomDropdown value={costIntensity} options={COST_INTENSITIES} onChange={setCostIntensity} />
+                                    <Label>Geographic Scope</Label>
+                                    <Select value={geographicScope} onChange={setGeographicScope} options={GEOGRAPHIC_SCOPES} />
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* 6. Execution & Validation */}
-                    {currentStep === 6 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Execution & Validation</h2>
-
-                            {/* Execution Difficulty */}
-                            <div className="grid md:grid-cols-3 gap-6">
+                        {/* 5. Revenue Model */}
+                        {currentStep === 5 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Build Difficulty</label>
-                                    <CustomDropdown value={buildDifficulty} options={BUILD_DIFFICULTIES} onChange={setBuildDifficulty} />
+                                    <Label>Revenue Type</Label>
+                                    <Select value={revenueModelType} onChange={setRevenueModelType} options={REVENUE_MODELS} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Time to v1</label>
-                                    <CustomDropdown value={timeToFirstVersion} options={TIMES_TO_VERSION} onChange={setTimeToFirstVersion} />
+                                    <Label>Expected Price / Customer</Label>
+                                    <Select value={expectedPricePerCustomer} onChange={setExpectedPricePerCustomer} options={PRICE_PER_CUSTOMER} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Regulatory / Legal</label>
-                                    <CustomDropdown value={regulatoryDependency} options={REGULATORY_DEPENDENCIES} onChange={setRegulatoryDependency} />
+                                    <Label>Cost Intensity</Label>
+                                    <Select value={costIntensity} onChange={setCostIntensity} options={COST_INTENSITIES} />
                                 </div>
                             </div>
+                        )}
 
-                            {/* Validation */}
-                            <div className="pt-6 border-t border-zinc-800">
-                                <h3 className="text-lg font-medium text-white mb-4">Validation</h3>
-                                <div className="grid md:grid-cols-1 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-300 mb-1">Validation Level</label>
-                                        <CustomDropdown value={validationLevel} options={VALIDATION_LEVELS} onChange={setValidationLevel} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-zinc-300 mb-1">Validation Notes</label>
-                                        <textarea value={validationNotes} onChange={(e) => setValidationNotes(e.target.value)} className="w-full bg-zinc-950/50 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none h-24" placeholder="Share any specific traction/validation details (optional)."></textarea>
+                        {/* 6. Execution & Validation */}
+                        {currentStep === 6 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div>
+                                    <Label>Build Difficulty</Label>
+                                    <Select value={buildDifficulty} onChange={setBuildDifficulty} options={BUILD_DIFFICULTIES} />
+                                </div>
+                                <div>
+                                    <Label>Time to v1</Label>
+                                    <Select value={timeToFirstVersion} onChange={setTimeToFirstVersion} options={TIMES_TO_VERSION} />
+                                </div>
+                                <div>
+                                    <Label>Regulatory / Legal</Label>
+                                    <Select value={regulatoryDependency} onChange={setRegulatoryDependency} options={REGULATORY_DEPENDENCIES} />
+                                </div>
+
+                                <div className="pt-6 border-t border-zinc-800">
+                                    <h3 className="text-lg font-medium text-white mb-4">Validation</h3>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <Label>Validation Level</Label>
+                                            <Select value={validationLevel} onChange={setValidationLevel} options={VALIDATION_LEVELS} />
+                                        </div>
+                                        <div>
+                                            <Label>Validation Notes</Label>
+                                            <TextArea value={validationNotes} onChange={(e: any) => setValidationNotes(e.target.value)} placeholder="Share any specific traction/validation details (optional)." rows={3} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* 7. Sale & Rights */}
-                    {currentStep === 7 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white">Sale & Rights</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
+                        {/* 7. Sale & Rights */}
+                        {currentStep === 7 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">What Is Included</label>
-                                    <CustomDropdown value={whatIsIncluded} options={WHATS_INCLUDED} onChange={setWhatIsIncluded} />
+                                    <Label>What Is Included</Label>
+                                    <Select value={whatIsIncluded} onChange={setWhatIsIncluded} options={WHATS_INCLUDED} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Resale Rights</label>
-                                    <CustomDropdown value={buyerResaleRights} options={BUYER_RIGHTS} onChange={setBuyerResaleRights} />
+                                    <Label>Resale Rights</Label>
+                                    <Select value={buyerResaleRights} onChange={setBuyerResaleRights} options={BUYER_RIGHTS} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Exclusivity</label>
-                                    <CustomDropdown value={exclusivity} options={EXCLUSIVITIES} onChange={setExclusivity} />
+                                    <Label>Exclusivity</Label>
+                                    <Select value={exclusivity} onChange={setExclusivity} options={EXCLUSIVITIES} />
+                                </div>
+                                <div>
+                                    <Label>Asking Price ($)</Label>
+                                    <Input type="number" value={price} onChange={(e: any) => setPrice(e.target.value)} placeholder="5000" />
+                                    <p className="text-xs text-zinc-500 mt-1">Limit: ${maxPriceLimit.toLocaleString()}</p>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-300 mb-1">Asking Price ($)</label>
-                                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className={`w-full bg-zinc-950/50 border rounded-lg px-4 py-3 text-white text-lg font-mono ${!isPriceValid ? 'border-red-500' : 'border-zinc-700'}`} placeholder="5000" />
-                                <p className="text-xs text-zinc-500 mt-1">Limit: ${maxPriceLimit}</p>
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* 8. Supporting Documents */}
-                    {currentStep === 8 && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h2 className="text-xl font-bold text-white mb-6">Supporting Documents</h2>
-                            <div className={`border rounded-xl p-6 bg-zinc-950/30 ${touched && !mainDocument && !existingMainDocUrl ? 'border-red-500/50' : 'border-zinc-800'}`}>
-                                <h3 className="text-lg font-medium text-white mb-4">Primary Document <span className="text-red-500">*</span></h3>
+                        {/* 8. Supporting Documents */}
+                        {currentStep === 8 && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className={`border rounded-xl p-6 bg-zinc-950/30 ${touched && !mainDocument && !existingMainDocUrl ? 'border-red-500/50' : 'border-zinc-800'}`}>
+                                    <h3 className="text-lg font-medium text-white mb-4">Primary Document <span className="text-red-500">*</span></h3>
 
-                                {(mainDocument || existingMainDocUrl) ? (
-                                    <div className="flex items-center justify-between bg-zinc-800/50 px-4 py-3 rounded-lg border border-zinc-700">
-                                        <span className="text-sm text-zinc-200 truncate max-w-xs">{mainDocument ? mainDocument.name : 'Existing Document'}</span>
-                                        <button onClick={removeMainDocument} className="text-zinc-500 hover:text-red-400"><XMarkIcon className="w-5 h-5" /></button>
+                                    {(mainDocument || existingMainDocUrl) ? (
+                                        <div className="flex items-center justify-between bg-zinc-800/50 px-4 py-3 rounded-lg border border-zinc-700">
+                                            <span className="text-sm text-zinc-200 truncate max-w-xs">{mainDocument ? mainDocument.name : 'Existing Document'}</span>
+                                            <button onClick={removeMainDocument} className="text-zinc-500 hover:text-red-400"><XMarkIcon className="w-5 h-5" /></button>
+                                        </div>
+                                    ) : (
+                                        <div onClick={() => mainFileInputRef.current?.click()} className="border border-dashed border-zinc-700 rounded-lg p-6 text-center cursor-pointer hover:border-zinc-500 transition-colors group">
+                                            <DocumentPlusIcon className="w-8 h-8 text-zinc-500 group-hover:text-green-500 mx-auto mb-2 transition-colors" />
+                                            <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">Click to upload Prospectus</span>
+                                            <span className="block text-xs text-zinc-500 mt-1">(PDF, JPEG, PNG - Max 10MB)</span>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={mainFileInputRef}
+                                        className="hidden"
+                                        accept="application/pdf,image/png,image/jpeg,image/webp"
+                                        onChange={handleMainDocUpload}
+                                    />
+
+                                    {/* Additional Docs */}
+                                    <div className="mt-6">
+                                        <div className="flex justify-between mb-2"><span className="text-sm text-zinc-300">Additional Docs</span></div>
+                                        {/* Existing */}
+                                        {existingAdditionalDocs.map((url, i) => (
+                                            <div key={`ex-${i}`} className="flex justify-between bg-zinc-800 px-3 py-2 rounded mb-2">
+                                                <span className="text-xs text-zinc-400">Existing Doc {i + 1}</span>
+                                                <button onClick={() => removeExistingAdditionalDocument(i)} className="text-red-400"><XMarkIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        ))}
+                                        {/* New */}
+                                        {additionalDocuments.map((doc, i) => (
+                                            <div key={`new-${i}`} className="flex justify-between bg-zinc-800 px-3 py-2 rounded mb-2">
+                                                <span className="text-xs text-zinc-300">{doc.name}</span>
+                                                <button onClick={() => removeAdditionalDocument(i)} className="text-red-400"><XMarkIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        ))}
+                                        {existingAdditionalDocs.length + additionalDocuments.length < 3 && (
+                                            <button onClick={() => additionalFileInputRef.current?.click()} className="text-xs text-green-400 flex items-center gap-1 hover:text-green-300">+ Add More</button>
+                                        )}
+                                        <input type="file" ref={additionalFileInputRef} className="hidden" accept="application/pdf" multiple onChange={handleAdditionalDocsUpload} />
                                     </div>
-                                ) : (
-                                    <div onClick={() => mainFileInputRef.current?.click()} className="border border-dashed border-zinc-700 rounded-lg p-6 text-center cursor-pointer hover:border-zinc-500 transition-colors">
-                                        <DocumentPlusIcon className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
-                                        <span className="text-sm text-zinc-400">Click to upload Prospectus</span>
-                                        <span className="block text-xs text-zinc-500 mt-1">(PDF, JPEG, PNG - Max 10MB)</span>
+                                </div>
+
+                                {/* AI Metrics */}
+                                {scores && (
+                                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 mt-8">
+                                        <h2 className="text-xl font-bold text-white mb-4">AI Metrics</h2>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <CircularScore label="Uniqueness" value={scores.uniqueness} />
+                                            <CircularScore label="Viability" value={scores.viability} />
+                                            <CircularScore label="Scalability" value={scores.scalability} />
+                                            <CircularScore label="Impact" value={scores.problem_impact} />
+                                        </div>
                                     </div>
                                 )}
-                                <input
-                                    type="file"
-                                    ref={mainFileInputRef}
-                                    className="hidden"
-                                    accept="application/pdf,image/png,image/jpeg,image/webp"
-                                    onChange={handleMainDocUpload}
-                                />
-
-                                {/* Additional Docs */}
-                                <div className="mt-6">
-                                    <div className="flex justify-between mb-2"><span className="text-sm text-zinc-300">Additional Docs</span></div>
-                                    {/* Existing */}
-                                    {existingAdditionalDocs.map((url, i) => (
-                                        <div key={`ex-${i}`} className="flex justify-between bg-zinc-800 px-3 py-2 rounded mb-2">
-                                            <span className="text-xs text-zinc-400">Existing Doc {i + 1}</span>
-                                            <button onClick={() => removeExistingAdditionalDocument(i)} className="text-red-400"><XMarkIcon className="w-4 h-4" /></button>
-                                        </div>
-                                    ))}
-                                    {/* New */}
-                                    {additionalDocuments.map((doc, i) => (
-                                        <div key={`new-${i}`} className="flex justify-between bg-zinc-800 px-3 py-2 rounded mb-2">
-                                            <span className="text-xs text-zinc-300">{doc.name}</span>
-                                            <button onClick={() => removeAdditionalDocument(i)} className="text-red-400"><XMarkIcon className="w-4 h-4" /></button>
-                                        </div>
-                                    ))}
-                                    {existingAdditionalDocs.length + additionalDocuments.length < 3 && (
-                                        <button onClick={() => additionalFileInputRef.current?.click()} className="text-xs text-green-400 flex items-center gap-1">+ Add More</button>
-                                    )}
-                                    <input type="file" ref={additionalFileInputRef} className="hidden" accept="application/pdf" multiple onChange={handleAdditionalDocsUpload} />
-                                </div>
                             </div>
+                        )}
+                    </div>
 
-                            {/* AI Metrics - Shown in review or edit mode? User asked for 9 sections ending here. 
-                                  If scores exist, we might want to show them. Let's keep them here for now validation/review. */}
-                            {scores && (
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 mt-8">
-                                    <h2 className="text-xl font-bold text-white mb-4">AI Metrics</h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <CircularScore label="Uniqueness" value={scores.uniqueness} />
-                                        <CircularScore label="Viability" value={scores.viability} />
-                                        <CircularScore label="Scalability" value={scores.scalability} />
-                                        <CircularScore label="Impact" value={scores.problem_impact} />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                </div>
-
-                {/* Navigation Footer */}
-                <div className="mt-12 flex justify-between pt-6 border-t border-zinc-800">
-                    <button
-                        onClick={handleBack}
-                        disabled={currentStep === 1}
-                        className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 ${currentStep === 1 ? 'text-zinc-600 cursor-not-allowed' : 'text-zinc-300 hover:text-white hover:bg-zinc-800'}`}
-                    >
-                        Back
-                    </button>
-
-                    {currentStep < TOTAL_STEPS ? (
+                    {/* Navigation Footer */}
+                    <div className="flex items-center justify-between mt-10 pt-6 border-t border-zinc-800/50">
                         <button
-                            onClick={handleNext}
-                            disabled={!isStepValid}
-                            className={`px-8 py-3 rounded-xl font-bold transition-all ${isStepValid ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+                            onClick={handleBack}
+                            disabled={currentStep === 1}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentStep === 1 ? 'text-zinc-600 cursor-not-allowed' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
                         >
-                            Next
+                            <ChevronLeftIcon className="w-4 h-4" />
+                            Back
                         </button>
-                    ) : (
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isSubmitting || !formValid}
-                            className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 ${formValid && !isSubmitting ? 'bg-green-500 text-black hover:bg-green-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
-                        >
-                            {isSubmitting ? 'Processing...' : (editId ? 'Update Listing' : 'Publish Listing')}
-                        </button>
-                    )}
+
+                        {currentStep < TOTAL_STEPS ? (
+                            <button
+                                onClick={handleNext}
+                                disabled={!isStepValid}
+                                className={`flex items-center gap-2 bg-[#22C55E] hover:bg-green-500 text-black px-6 py-2.5 rounded-lg text-sm font-bold transition-all transform hover:scale-105 shadow-[0_4px_20px_rgba(34,197,94,0.3)] hover:shadow-[0_6px_25px_rgba(34,197,94,0.5)] ${!isStepValid ? 'opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-none' : ''}`}
+                            >
+                                Next Step
+                                <ChevronRightIcon className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting || !formValid}
+                                className={`flex items-center gap-2 bg-[#22C55E] hover:bg-green-500 text-black px-6 py-2.5 rounded-lg text-sm font-bold transition-all transform hover:scale-105 shadow-[0_4px_20px_rgba(34,197,94,0.3)] hover:shadow-[0_6px_25px_rgba(34,197,94,0.5)] ${(!formValid || isSubmitting) ? 'opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-none' : ''}`}
+                            >
+                                {isSubmitting ? 'Processing...' : (editId ? 'Update Listing' : 'Publish Listing')}
+                                <CheckCircleIconSolid className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
