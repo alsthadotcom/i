@@ -402,11 +402,15 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 await createAIScoring({
                     idea_id: ideaData.idea_id,
                     uniqueness: 50,
-                    demand: 'Mid',
-                    problem_impact: 50,
-                    profitability: "Analysis Pending",
-                    viability: 50,
-                    scalability: 50
+                    customer_pain: 50,
+                    scalability: 50,
+                    product_market_fit: 50,
+                    technical_complexity: 50,
+                    capital_intensity: 50,
+                    market_saturation: 50,
+                    business_model_robustness: 50,
+                    market_growth_rate: 50,
+                    social_value: 50
                 });
 
                 alert('Idea listed successfully!');

@@ -8,10 +8,12 @@
 export interface UserInfo {
     user_id: string;
     name: string;
-    email: string;
+    email: string; // From auth.users
     username: string; // Format: @username (lowercase alphanumeric only)
-    password?: string; // Added as per requirement
-    profile_picture?: string | null; // URL to profile picture
+    full_name?: string;
+    password?: string;
+    profile_picture?: string | null;
+    avatar_url?: string | null; // Alias
     created_at?: string;
     updated_at?: string;
 }
@@ -26,9 +28,9 @@ export interface IdeaListing {
     category: string;
     secondary_category?: string;
 
-    // Page 2: Customer Pain
+    // Page 2: Customer Pain (V4 Granular)
     pain_who?: string;
-    pain_problem?: string[];
+    pain_problem?: string[]; // Array
     pain_frequency?: string;
 
     // Page 3: Current Solutions
@@ -71,17 +73,22 @@ export interface IdeaListing {
     updated_at?: string;
 }
 
-export type DemandLevel = 'Low' | 'Low-Mid' | 'Mid' | 'Mid-High' | 'High';
-
 export interface AIScoring {
     ai_score_id: string;
     idea_id: string;
+
+    // The 10 Metrics
     uniqueness: number;
-    demand: DemandLevel;
-    problem_impact: number;
-    profitability: string;
-    viability: number;
+    customer_pain: number;
     scalability: number;
+    product_market_fit: number;
+    technical_complexity: number;
+    capital_intensity: number;
+    market_saturation: number;
+    business_model_robustness: number;
+    market_growth_rate: number;
+    social_value: number; // Valuability to Society
+
     overall_score?: number;
     created_at?: string;
     updated_at?: string;
@@ -93,14 +100,15 @@ export interface MarketplaceView {
     ai_score_id: string;
     title: string;
     description: string;
+
+    // For card preview, simplistic view
     uniqueness: number;
-    viability: number;
-    profitability: string;
+    viability: number; // Mapped from PMF for legacy card support
+    profitability: string; // Placeholder string
+
     category?: string | null;
     secondary_category?: string | null;
-
     mvp: boolean;
-
     document_url: string;
     price: number;
     username: string;
@@ -124,7 +132,7 @@ export interface IdeaDetailView {
     category?: string;
     secondary_category?: string;
 
-    // New Granular Fields
+    // V4 Granular Fields
     pain_who?: string;
     pain_problem?: string[];
     pain_frequency?: string;
@@ -153,12 +161,18 @@ export interface IdeaDetailView {
     impact_improvement?: string;
     impact_scale?: string;
 
+    // New 10 Metrics
     uniqueness: number;
-    demand: DemandLevel;
-    problem_impact: number;
-    profitability: string;
-    viability: number;
+    customer_pain: number;
     scalability: number;
+    product_market_fit: number;
+    technical_complexity: number;
+    capital_intensity: number;
+    market_saturation: number;
+    business_model_robustness: number;
+    market_growth_rate: number;
+    social_value: number;
+
     overall_score: number;
     price: number;
     username: string;
@@ -173,7 +187,7 @@ export interface IdeaDetailView {
     updated_at: string;
 }
 
-// Helper type for creating new ideas (without auto-generated fields)
+// Helpers
 export type NewIdeaListing = Omit<IdeaListing, 'idea_id' | 'created_at' | 'updated_at'>;
 export type NewAIScoring = Omit<AIScoring, 'ai_score_id' | 'created_at' | 'updated_at' | 'overall_score'>;
 export type NewUserInfo = Omit<UserInfo, 'user_id' | 'created_at' | 'updated_at'>;

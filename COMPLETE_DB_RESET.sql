@@ -1,5 +1,5 @@
 -- ==============================================================================
--- FINAL DEFINITIVE DB RESET SCRIPT (Matches SellIdea.tsx V4)
+-- FINAL DEFINITIVE DB RESET SCRIPT (Matches SellIdea.tsx V4 + New AI Scoring)
 -- ==============================================================================
 
 -- 1. DROP EVERYTHING
@@ -20,6 +20,7 @@ CREATE TABLE user_info (
     full_name TEXT,
     avatar_url TEXT,
     profile_picture TEXT, 
+    password TEXT, -- Added for legacy/manual auth support
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -89,19 +90,38 @@ CREATE POLICY "Users insert own" ON idea_listing FOR INSERT WITH CHECK (auth.uid
 CREATE POLICY "Users update own" ON idea_listing FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users delete own" ON idea_listing FOR DELETE USING (auth.uid() = user_id);
 
--- 4. AI SCORING (Unique Constraint)
+-- 4. AI SCORING (Updated 10 Metrics)
 CREATE TABLE ai_scoring (
     ai_score_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     idea_id UUID REFERENCES idea_listing(idea_id) ON DELETE CASCADE,
+    
+    -- The 10 Metrics (0-100 scale implied)
     uniqueness NUMERIC,
-    demand TEXT,
-    problem_impact NUMERIC,
-    profitability TEXT,
-    viability NUMERIC,
+    customer_pain NUMERIC,
     scalability NUMERIC,
+    product_market_fit NUMERIC,
+    technical_complexity NUMERIC,
+    capital_intensity NUMERIC,
+    market_saturation NUMERIC,
+    business_model_robustness NUMERIC,
+    market_growth_rate NUMERIC,
+    social_value NUMERIC, -- "Valuability to Society"
+
     overall_score NUMERIC GENERATED ALWAYS AS (
-      (COALESCE(uniqueness, 0) + COALESCE(problem_impact, 0) + COALESCE(viability, 0) + COALESCE(scalability, 0)) / 4
+      (
+        COALESCE(uniqueness, 0) + 
+        COALESCE(customer_pain, 0) + 
+        COALESCE(scalability, 0) + 
+        COALESCE(product_market_fit, 0) + 
+        COALESCE(technical_complexity, 0) + 
+        COALESCE(capital_intensity, 0) + 
+        COALESCE(market_saturation, 0) + 
+        COALESCE(business_model_robustness, 0) + 
+        COALESCE(market_growth_rate, 0) + 
+        COALESCE(social_value, 0)
+      ) / 10
     ) STORED,
+
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT ai_scoring_idea_id_key UNIQUE (idea_id) 
@@ -133,7 +153,7 @@ CREATE TABLE saves (
 ALTER TABLE saves ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage saves" ON saves FOR ALL USING (auth.uid() = user_id);
 
--- 6. MESSAGES & SHARES (Restored from your snippet)
+-- 6. MESSAGES & SHARES
 CREATE TABLE messages (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   sender_id uuid REFERENCES auth.users(id) NOT NULL,
@@ -175,10 +195,11 @@ SELECT
     s.ai_score_id,
     COALESCE(s.overall_score, 0) as overall_score,
     COALESCE(s.uniqueness, 0) as uniqueness,
-    COALESCE(s.viability, 0) as viability,
-    COALESCE(s.profitability, 'N/A') as profitability,
+    -- Map new columns relevant for card preview if any, or just keep basic ones
+    COALESCE(s.product_market_fit, 0) as viability, -- Mapping PMF to viability for legacy support if needed
+    'Analysis Completed' as profitability, -- Placeholder or map from business robustness
     
-    false as mvp -- Default to false for V4
+    false as mvp
     
 FROM idea_listing i
 LEFT JOIN ai_scoring s ON i.idea_id = s.idea_id
@@ -193,7 +214,20 @@ SELECT
     u.username,
     u.profile_picture,
     s.ai_score_id,
-    s.overall_score, s.uniqueness, s.demand, s.problem_impact, s.profitability, s.viability, s.scalability
+    s.overall_score,
+    
+    -- New 10 Metrics
+    s.uniqueness,
+    s.customer_pain,
+    s.scalability,
+    s.product_market_fit,
+    s.technical_complexity,
+    s.capital_intensity,
+    s.market_saturation,
+    s.business_model_robustness,
+    s.market_growth_rate,
+    s.social_value
+
 FROM idea_listing i
 LEFT JOIN user_info u ON i.user_id = u.user_id
 LEFT JOIN ai_scoring s ON i.idea_id = s.idea_id;
