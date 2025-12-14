@@ -133,6 +133,7 @@ SELECT
     i.category,
     i.price,
     i.user_id,
+    u.username, -- Added username
     i.created_at,
     i.document_url, -- Used for thumbnails if we generate them, or placeholders
     -- AI Scores
@@ -146,7 +147,8 @@ SELECT
     CASE WHEN i.stage = 'MVP built' OR i.stage = 'Revenue generating' THEN true ELSE false END as mvp
     
 FROM idea_listing i
-LEFT JOIN ai_scoring s ON i.idea_id = s.idea_id;
+LEFT JOIN ai_scoring s ON i.idea_id = s.idea_id
+LEFT JOIN user_info u ON i.user_id::text = u.user_id::text;
 
 
 -- Idea Detail View: Used for the details page.

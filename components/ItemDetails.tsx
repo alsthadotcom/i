@@ -1,7 +1,12 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect } from 'react';
 import {
-    ArrowLeftIcon, CheckBadgeIcon, ChartBarIcon, DocumentTextIcon, ShieldCheckIcon, LinkIcon, DocumentCheckIcon, LockClosedIcon,
-    HeartIcon, BookmarkIcon, ShareIcon, ClipboardDocumentIcon, XMarkIcon, CheckIcon
+    ArrowLeftIcon, ShieldCheckIcon, LinkIcon, DocumentCheckIcon,
+    HeartIcon, BookmarkIcon, ShareIcon, ClipboardDocumentIcon, XMarkIcon, CheckIcon,
+    LockClosedIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon, HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 import { getIdeaDetailById, getLikeStatus, toggleLike, getSaveStatus, toggleSave, getShareCount, trackShare } from '../services/database';
@@ -137,21 +142,6 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
         );
     }
 
-    const getScoreColor = (score: number) => {
-        if (score >= 75) return 'text-green-500';
-        if (score >= 50) return 'text-yellow-500';
-        if (score >= 25) return 'text-orange-500';
-        return 'text-red-500';
-    };
-
-    const getDemandColor = (demand: string) => {
-        if (demand === 'High') return 'text-green-500';
-        if (demand === 'Mid-High') return 'text-green-400';
-        if (demand === 'Mid') return 'text-yellow-500';
-        if (demand === 'Low-Mid') return 'text-orange-500';
-        return 'text-red-500';
-    };
-
     const handleContactSeller = () => {
         if (!currentUser) return alert('Please log in to message the seller.');
         if (!item) return;
@@ -196,212 +186,38 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                             <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                 {item.category || 'Business'}
                             </span>
-                            <span className="bg-zinc-800 text-zinc-400 border border-zinc-700 px-3 py-1 rounded-full text-xs font-medium">
-                                {item.stage || 'Concept'}
-                            </span>
+                            {item.secondary_category && (
+                                <span className="bg-zinc-800 text-zinc-400 border border-zinc-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    {item.secondary_category}
+                                </span>
+                            )}
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{item.title}</h1>
+                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{item.title}</h1>
                         <p className="text-xl text-zinc-400 leading-relaxed max-w-2xl">{item.one_line_description}</p>
                     </div>
 
-                    {/* Problem & Solution (The "Meat") */}
-                    <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg space-y-8">
-                        <div>
-                            <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                                <DocumentTextIcon className="w-5 h-5 text-red-400" />
-                                The Problem
-                            </h2>
-                            <p className="text-zinc-300 leading-relaxed whitespace-pre-line">{item.problem_description || "No problem description provided."}</p>
+                    {/* Locked Content Area */}
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-6 relative overflow-hidden group">
 
-                            {(item.who_faces_problem || item.pain_level) && (
-                                <div className="mt-4 flex gap-4 text-sm">
-                                    {item.who_faces_problem && (
-                                        <div className="bg-zinc-950/50 border border-zinc-800 px-3 py-2 rounded text-zinc-400">
-                                            <span className="block text-xs uppercase text-zinc-600 font-bold mb-1">Target</span>
-                                            {item.who_faces_problem}
-                                        </div>
-                                    )}
-                                    {item.pain_level && (
-                                        <div className="bg-zinc-950/50 border border-zinc-800 px-3 py-2 rounded text-zinc-400">
-                                            <span className="block text-xs uppercase text-zinc-600 font-bold mb-1">Pain Lvl</span>
-                                            {item.pain_level}/5
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950 pointer-events-none"></div>
+
+                        <div className="relative z-10 bg-zinc-800/50 p-4 rounded-full border border-zinc-700 mb-2 group-hover:bg-zinc-800 transition-colors">
+                            <LockClosedIcon className="w-8 h-8 text-zinc-400" />
                         </div>
 
-                        <div className="h-px bg-white/5 w-full" />
-
-                        <div>
-                            <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                                <CheckBadgeIcon className="w-5 h-5 text-green-400" />
-                                The Solution
-                            </h2>
-                            <p className="text-zinc-300 leading-relaxed whitespace-pre-line">{item.solution_summary || "No solution summary provided."}</p>
-
-                            {item.primary_advantage && (
-                                <div className="mt-4 bg-green-500/5 border border-green-500/10 p-4 rounded-lg">
-                                    <span className="text-xs font-bold text-green-400 uppercase tracking-widest">Unfair Advantage</span>
-                                    <p className="text-green-100 mt-1">{item.primary_advantage}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Market & Revenue Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-lg">
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                <ChartBarIcon className="w-5 h-5 text-blue-400" />
-                                Market Potential
-                            </h3>
-                            <ul className="space-y-3">
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Market Size</span>
-                                    <span className="text-zinc-200 font-medium">{item.market_size || 'N/A'}</span>
-                                </li>
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Growth Trend</span>
-                                    <span className="text-zinc-200 font-medium">{item.market_growth_trend || 'N/A'}</span>
-                                </li>
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Geo Scope</span>
-                                    <span className="text-zinc-200 font-medium">{item.geographic_scope || 'N/A'}</span>
-                                </li>
-                            </ul>
+                        <div className="relative z-10 max-w-md">
+                            <h3 className="text-xl font-bold text-white mb-2">Detailed Analysis Locked</h3>
+                            <p className="text-zinc-400">
+                                Full customer pain points, execution steps, revenue models, and impact analysis are available to the buyer.
+                            </p>
                         </div>
 
-                        <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-lg">
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                <div className="w-5 h-5 text-yellow-400 font-serif font-bold">$</div>
-                                Revenue Model
-                            </h3>
-                            <ul className="space-y-3">
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Model Type</span>
-                                    <span className="text-zinc-200 font-medium">{item.revenue_model_type || 'N/A'}</span>
-                                </li>
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Price / Cust</span>
-                                    <span className="text-zinc-200 font-medium">{item.expected_price_per_customer || 'N/A'}</span>
-                                </li>
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-zinc-500">Cost Intensity</span>
-                                    <span className="text-zinc-200 font-medium">{item.cost_intensity || 'N/A'}</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    {/* Execution & Validation */}
-                    <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <ShieldCheckIcon className="w-5 h-5 text-purple-400" />
-                            Execution & Validation
-                        </h2>
-                        <div className="grid md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                                <div className="text-xs text-zinc-500 uppercase">Difficulty</div>
-                                <div className="text-white font-medium mt-1">{item.build_difficulty || 'Unknown'}</div>
-                            </div>
-                            <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                                <div className="text-xs text-zinc-500 uppercase">Time to v1</div>
-                                <div className="text-white font-medium mt-1">{item.time_to_first_version || 'Unknown'}</div>
-                            </div>
-                            <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                                <div className="text-xs text-zinc-500 uppercase">Validation</div>
-                                <div className="text-white font-medium mt-1">{item.validation_level || 'None'}</div>
-                            </div>
-                        </div>
-                        {item.validation_notes && (
-                            <div className="bg-purple-500/5 border border-purple-500/10 p-4 rounded-lg">
-                                <span className="text-xs font-bold text-purple-400 uppercase">Traction / Notes</span>
-                                <p className="text-zinc-300 text-sm mt-2">{item.validation_notes}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* AI Scoring Card */}
-                    <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <ChartBarIcon className="w-5 h-5 text-green-500" />
-                            AI Analysis & Scoring
-                        </h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Uniqueness</div>
-                                <div className={`text-2xl md:text-3xl font-bold ${getScoreColor(item.uniqueness)}`}>
-                                    {item.uniqueness}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">out of 100</div>
-                            </div>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Demand</div>
-                                <div className={`text-xl md:text-2xl font-bold ${getDemandColor(item.demand)}`}>
-                                    {item.demand}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">Market</div>
-                            </div>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Impact</div>
-                                <div className={`text-2xl md:text-3xl font-bold ${getScoreColor(item.problem_impact)}`}>
-                                    {item.problem_impact}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">out of 100</div>
-                            </div>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Viability</div>
-                                <div className={`text-2xl md:text-3xl font-bold ${getScoreColor(item.viability)}`}>
-                                    {item.viability}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">out of 100</div>
-                            </div>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Scalability</div>
-                                <div className={`text-2xl md:text-3xl font-bold ${getScoreColor(item.scalability)}`}>
-                                    {item.scalability}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">out of 100</div>
-                            </div>
-                            <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4 col-span-2 lg:col-span-1">
-                                <div className="text-xs text-zinc-500 uppercase mb-2">Overall</div>
-                                <div className={`text-2xl md:text-3xl font-bold ${getScoreColor(item.overall_score)}`}>
-                                    {item.overall_score.toFixed(1)}
-                                </div>
-                                <div className="text-xs text-zinc-600 mt-1">Average</div>
-                            </div>
-                        </div>
-                        {/* Profitability */}
-                        <div className="mt-6 bg-green-500/5 border border-green-500/20 rounded-lg p-4">
-                            <div className="text-xs text-green-400 uppercase mb-2">Profitability Estimate</div>
-                            <div className="text-zinc-300 text-sm md:text-base">{item.profitability}</div>
-                        </div>
-                    </div>
-
-                    {/* Documents */}
-                    <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
-                        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <DocumentTextIcon className="w-5 h-5 text-green-500" />
-                            Documents
-                        </h2>
-                        <div className="space-y-3">
-                            <a href={item.document_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-zinc-950/50 border border-zinc-800 hover:border-green-500/50 rounded-lg p-4 transition-colors group cursor-pointer">
-                                <DocumentTextIcon className="w-8 h-8 text-green-500" />
-                                <div>
-                                    <div className="text-sm font-bold text-white group-hover:text-green-400 transition-colors">Primary Prospectus</div>
-                                    <div className="text-xs text-zinc-500">Main PDF Document</div>
-                                </div>
-                            </a>
-
-                            {[item.additional_doc_1, item.additional_doc_2, item.additional_doc_3].map((doc, idx) => (
-                                doc && (
-                                    <a key={idx} href={doc} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-zinc-950/50 border border-zinc-800 hover:border-zinc-600 rounded-lg p-4 transition-colors">
-                                        <DocumentTextIcon className="w-5 h-5 text-zinc-500" />
-                                        <div className="text-sm font-medium text-white">Additional Document {idx + 1}</div>
-                                    </a>
-                                )
-                            ))}
+                        <div className="relative z-10 flex gap-4 text-sm text-zinc-500 font-mono">
+                            <span className="flex items-center gap-1"><CheckIcon className="w-4 h-4 text-green-500" /> Problem & Solution</span>
+                            <span className="flex items-center gap-1"><CheckIcon className="w-4 h-4 text-green-500" /> Execution Plan</span>
+                            <span className="flex items-center gap-1"><CheckIcon className="w-4 h-4 text-green-500" /> Financials</span>
                         </div>
                     </div>
 
@@ -420,18 +236,11 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                 </div>
                             </div>
                             <div className="text-xs text-zinc-500 font-mono lowercase bg-white/5 border border-white/5 px-2 py-1 rounded h-fit">
-                                @{item.username.replace(/^@/, '').toLowerCase()}
+                                @{(item.username || 'User').replace(/^@/, '').toLowerCase()}
                             </div>
                         </div>
 
-                        {item.mvp && (
-                            <div className="inline-flex items-center gap-2 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-lg">
-                                <CheckBadgeIcon className="w-4 h-4" />
-                                <span>MVP Available</span>
-                            </div>
-                        )}
-
-                        {/* Rating Row */}
+                        {/* Rating Row (Optional Display) */}
                         <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                             <div className="flex items-center gap-2">
                                 <div className="bg-yellow-500/10 p-1.5 rounded-lg">

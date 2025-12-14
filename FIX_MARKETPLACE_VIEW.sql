@@ -1,26 +1,30 @@
--- Update the Marketplace View to use LEFT JOINs
--- This ensures that listings appear even if scoring data is missing or user data is incomplete.
+-- Fix Marketplace View to include Username
+-- This requires user_info and idea_listing tables to be populated and linked.
 
 DROP VIEW IF EXISTS marketplace;
 
-CREATE VIEW marketplace AS
-SELECT
-    ('MKT_' || substr(md5(il.idea_id), 1, 16)) AS marketplace_id,
-    il.idea_id,
-    COALESCE(ai.ai_score_id, 'pending') as ai_score_id,
-    il.title,
-    il.description,
-    COALESCE(ai.uniqueness, 0) as uniqueness,
-    COALESCE(ai.viability, 0) as viability,
-    COALESCE(ai.profitability, 'N/A') as profitability,
-    il.price,
-    il.category,
-    il.mvp,
-    il.document_url,
-    COALESCE(ui.username, 'Anonymous') as username,
-    il.created_at,
-    COALESCE(ai.overall_score, 0) as overall_score
-FROM idea_listing il
-LEFT JOIN ai_scoring ai ON il.idea_id = ai.idea_id
-LEFT JOIN user_info ui ON il.user_id = ui.user_id
-ORDER BY il.created_at DESC;
+CREATE OR REPLACE VIEW marketplace AS
+SELECT 
+    i.idea_id as marketplace_id,
+    i.idea_id,
+    i.title,
+    i.one_line_description as description, -- Using brief description for cards
+    i.category,
+    i.price,
+    i.user_id,
+    u.username, -- Added username
+    i.created_at,
+    i.document_url,
+    -- AI Scores
+    s.ai_score_id,
+    COALESCE(s.overall_score, 0) as overall_score,
+    COALESCE(s.uniqueness, 0) as uniqueness,
+    COALESCE(s.viability, 0) as viability,
+    COALESCE(s.profitability, 'N/A') as profitability,
+    
+    -- MVP flag
+    CASE WHEN i.stage = 'MVP built' OR i.stage = 'Revenue generating' THEN true ELSE false END as mvp
+    
+FROM idea_listing i
+LEFT JOIN ai_scoring s ON i.idea_id = s.idea_id
+LEFT JOIN user_info u ON i.user_id::text = u.user_id::text; -- Cast to text to ensure match if one is uuid and other is text

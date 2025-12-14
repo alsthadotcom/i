@@ -397,7 +397,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                             {/* Header: Username & Rating */}
                             <div className="flex justify-between items-start mb-3">
                                 <span className="text-[10px] text-zinc-300 border-zinc-700 border px-2 py-1 rounded font-mono">
-                                    @{item.username.replace(/^@/, '').toLowerCase()}
+                                    @{(item.username || 'User').replace(/^@/, '').toLowerCase()}
                                 </span>
                                 <div className="flex items-center space-x-1 text-zinc-400">
                                     <StarIcon className="w-3 h-3" />

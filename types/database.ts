@@ -19,51 +19,25 @@ export interface UserInfo {
 export interface IdeaListing {
     idea_id: string;
     user_id: string;
-    // Idea Snapshot
+
+    // Idea Info (Step 1)
     title: string;
-    one_line_description: string;
-    category: string; // Industry
-    target_customer_type?: string;
-    stage?: string;
+    one_line_description: string; // "Short Description"
+    category: string; // Primary
+    secondary_category?: string;
 
-    // Problem & Urgency
-    problem_description?: string;
-    who_faces_problem?: string;
-    pain_level?: number;
-    urgency_level?: string;
-    current_alternatives?: string;
+    // Narrative Sections (Arrays for lists, Strings for paragraphs)
+    customer_pain?: string[]; // A. Numbered List
+    current_solutions?: string[]; // B. Numbered List
+    execution_steps?: string[]; // C. Numbered List
+    growth_plan?: string[]; // D. Numbered List
 
-    // Solution & Advantage
-    solution_summary?: string;
-    primary_advantage?: string;
-    differentiation_strength?: number;
-
-    // Market Potential
-    market_size?: string;
-    market_growth_trend?: string;
-    geographic_scope?: string;
-
-    // Revenue Model
-    revenue_model_type?: string;
-    expected_price_per_customer?: string;
-    cost_intensity?: string;
-
-    // Execution Difficulty
-    build_difficulty?: string;
-    time_to_first_version?: string;
-    regulatory_dependency?: string;
-
-    // Validation
-    validation_level?: string;
-    validation_notes?: string;
-
-    // Sale & Rights
-    what_is_included?: string;
-    buyer_resale_rights?: string;
-    exclusivity?: string;
+    solution_details?: string; // E. Paragraph
+    revenue_plan?: string; // F. Paragraph
+    impact?: string; // G. Paragraph
 
     price: number;
-    document_url: string; // Main PDF document
+    document_url: string;
     additional_doc_1?: string | null;
     additional_doc_2?: string | null;
     additional_doc_3?: string | null;
@@ -77,13 +51,13 @@ export type DemandLevel = 'Low' | 'Low-Mid' | 'Mid' | 'Mid-High' | 'High';
 export interface AIScoring {
     ai_score_id: string;
     idea_id: string;
-    uniqueness: number; // 0-100
+    uniqueness: number;
     demand: DemandLevel;
-    problem_impact: number; // 0-100
-    profitability: string; // Estimated revenue/profits as text
-    viability: number; // 0-100
-    scalability: number; // 0-100
-    overall_score?: number; // Auto-calculated average
+    problem_impact: number;
+    profitability: string;
+    viability: number;
+    scalability: number;
+    overall_score?: number;
     created_at?: string;
     updated_at?: string;
 }
@@ -93,13 +67,13 @@ export interface MarketplaceView {
     idea_id: string;
     ai_score_id: string;
     title: string;
-    description: string; // View aliases one_line_description to this
+    description: string;
     uniqueness: number;
     viability: number;
     profitability: string;
     category?: string | null;
+    secondary_category?: string | null;
 
-    // Derived or present
     mvp: boolean;
 
     document_url: string;
@@ -110,43 +84,29 @@ export interface MarketplaceView {
 }
 
 export interface IdeaDetailView {
-    idea_detail_id: string;
+    idea_detail_id?: string; // View might not have ID column depending on implementation
     idea_id: string;
     user_id: string;
     ai_score_id: string;
     title: string;
 
     // Mapped fields
-    description: string; // Mapped from one_line or solution
-    mvp: boolean; // Mapped derived
+    description: string;
+    mvp: boolean;
 
     // Full Fields
     one_line_description?: string;
     category?: string;
-    target_customer_type?: string;
-    stage?: string;
-    problem_description?: string;
-    who_faces_problem?: string;
-    pain_level?: number;
-    urgency_level?: string;
-    current_alternatives?: string;
-    solution_summary?: string;
-    primary_advantage?: string;
-    differentiation_strength?: number;
-    market_size?: string;
-    market_growth_trend?: string;
-    geographic_scope?: string;
-    revenue_model_type?: string;
-    expected_price_per_customer?: string;
-    cost_intensity?: string;
-    build_difficulty?: string;
-    time_to_first_version?: string;
-    regulatory_dependency?: string;
-    validation_level?: string;
-    validation_notes?: string;
-    what_is_included?: string;
-    buyer_resale_rights?: string;
-    exclusivity?: string;
+    secondary_category?: string;
+
+    // New Narrative Fields
+    customer_pain?: string[];
+    current_solutions?: string[];
+    execution_steps?: string[];
+    growth_plan?: string[];
+    solution_details?: string;
+    revenue_plan?: string;
+    impact?: string;
 
     uniqueness: number;
     demand: DemandLevel;
@@ -157,6 +117,7 @@ export interface IdeaDetailView {
     overall_score: number;
     price: number;
     username: string;
+    profile_picture?: string;
 
     document_url: string;
     additional_doc_1?: string | null;

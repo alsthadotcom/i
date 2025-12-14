@@ -543,19 +543,20 @@ export async function getUserListings(userId: string): Promise<{ data: Marketpla
     const marketplaceItems: MarketplaceView[] = (listings || []).map((item: any) => {
         const scoreData = item.ai_scoring?.[0] || item.ai_scoring; // Handle array or object return
         return {
-            marketplace_id: item.idea_id, // Use idea_id as fallback
+            marketplace_id: item.idea_id,
             idea_id: item.idea_id,
             ai_score_id: scoreData?.ai_score_id || 'pending',
             title: item.title,
-            description: item.one_line_description || '', // Mapped from one_line for view compatibility
+            description: item.one_line_description || '',
             uniqueness: scoreData?.uniqueness || 0,
             viability: scoreData?.viability || 0,
             profitability: scoreData?.profitability || 'N/A',
             category: item.category,
-            mvp: (item.stage === 'MVP built' || item.stage === 'Revenue generating'), // Derived MVP status
+            secondary_category: item.secondary_category,
+            mvp: false, // Legacy 'stage' field removed. Defaulting to false for V3 listings.
             document_url: item.document_url,
             price: item.price,
-            username: '', // Not needed for dashboard view usually, or fetch if needed
+            username: '',
             created_at: item.created_at,
             overall_score: scoreData?.overall_score || 0
         };
