@@ -334,7 +334,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 return true;
         }
     }, [
-        currentStep, title, shortDescription, primaryCategory,
+        currentStep, title, shortDescription, primaryCategory, secondaryCategory,
         painWho, painProblem, painFrequency,
         solutionCurrent, solutionInsufficient, solutionRisks,
         execSteps, execSkills, execRisks,
@@ -342,7 +342,9 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         solWhat, solHow, solWhyBetter,
         revWhoPays, revFlow, revRetention,
         impactWho, impactImprovement, impactScale,
-        mainDocument, existingMainDocUrl, price
+        mainDocument, existingMainDocUrl, price,
+        hasAdditionalDocs, additionalDocuments, existingAdditionalDocs,
+        hasMvp, mvpType, mvpUrl, mvpImage, mvpVideo
     ]);
 
     // --- Handlers ---
