@@ -451,18 +451,21 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 const { data: ideaData, error } = await createIdeaListing({ ...listingData, user_id: user.id });
                 if (error || !ideaData) throw error;
 
+                // Generate random scores between 25-90 for each metric
+                const randomScore = () => Math.floor(Math.random() * (90 - 25 + 1)) + 25;
+
                 await createAIScoring({
                     idea_id: ideaData.idea_id,
-                    uniqueness: 50,
-                    customer_pain: 50,
-                    scalability: 50,
-                    product_market_fit: 50,
-                    technical_complexity: 50,
-                    capital_intensity: 50,
-                    market_saturation: 50,
-                    business_model_robustness: 50,
-                    market_growth_rate: 50,
-                    social_value: 50
+                    uniqueness: randomScore(),
+                    customer_pain: randomScore(),
+                    scalability: randomScore(),
+                    product_market_fit: randomScore(),
+                    technical_complexity: randomScore(),
+                    capital_intensity: randomScore(),
+                    market_saturation: randomScore(),
+                    business_model_robustness: randomScore(),
+                    market_growth_rate: randomScore(),
+                    social_value: randomScore()
                 });
 
                 alert('Idea listed successfully!');

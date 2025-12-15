@@ -196,6 +196,66 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                         <p className="text-xl text-zinc-400 leading-relaxed max-w-2xl">{item.one_line_description}</p>
                     </div>
 
+                    {/* AI Scoring Metrics */}
+                    <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-lg">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-purple-500/10 rounded-lg">
+                                <StarIcon className="w-6 h-6 text-purple-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">AI Analysis Metrics</h2>
+                                <p className="text-sm text-zinc-400">Powered by IDA AI Engine</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { label: 'Uniqueness', value: item.uniqueness, description: 'How novel is this idea?' },
+                                { label: 'Customer Pain', value: item.customer_pain, description: 'Problem severity' },
+                                { label: 'Scalability', value: item.scalability, description: 'Growth potential' },
+                                { label: 'Product-Market Fit', value: item.product_market_fit, description: 'Market alignment' },
+                                { label: 'Technical Complexity', value: item.technical_complexity, description: 'Implementation difficulty' },
+                                { label: 'Capital Intensity', value: item.capital_intensity, description: 'Investment required' },
+                                { label: 'Market Saturation', value: item.market_saturation, description: 'Competition level' },
+                                { label: 'Business Model', value: item.business_model_robustness, description: 'Revenue strength' },
+                                { label: 'Market Growth Rate', value: item.market_growth_rate, description: 'Industry momentum' },
+                                { label: 'Social Value', value: item.social_value, description: 'Societal impact' }
+                            ].map((metric, idx) => {
+                                const getColor = (value: number) => {
+                                    if (value >= 75) return 'text-green-400 bg-green-500/10 border-green-500/20';
+                                    if (value >= 50) return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+                                    return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+                                };
+
+                                const getBarColor = (value: number) => {
+                                    if (value >= 75) return 'bg-green-500';
+                                    if (value >= 50) return 'bg-yellow-500';
+                                    return 'bg-orange-500';
+                                };
+
+                                return (
+                                    <div key={idx} className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex-1">
+                                                <h3 className="text-sm font-semibold text-white">{metric.label}</h3>
+                                                <p className="text-xs text-zinc-500">{metric.description}</p>
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-lg border font-bold text-sm ${getColor(metric.value)}`}>
+                                                {metric.value}
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className={`h-full ${getBarColor(metric.value)} transition-all duration-500 rounded-full`}
+                                                style={{ width: `${metric.value}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Locked Content Area */}
                     <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-6 relative overflow-hidden group">
 
