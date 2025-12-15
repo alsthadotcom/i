@@ -110,6 +110,8 @@ export interface MarketplaceView {
     uniqueness: number;
     viability: number; // Mapped from PMF for legacy card support
     profitability: string; // Placeholder string
+    market_saturation: number;
+    capital_intensity: number;
 
     category?: string | null;
     secondary_category?: string | null;

@@ -415,9 +415,18 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
                             {/* 3 Circular Indicators */}
                             <div className="flex flex-nowrap gap-4 justify-center mb-6 mt-auto">
-                                <MiniRadial value={Math.round(item.uniqueness || 0)} />
-                                <MiniRadial value={Math.round(item.viability || 0)} />
-                                <MiniRadial value={Math.round(item.overall_score * 10)} />
+                                <div className="flex flex-col items-center gap-1">
+                                    <MiniRadial value={Math.round(item.uniqueness || 0)} />
+                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Unique</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <MiniRadial value={Math.round(item.market_saturation || 0)} />
+                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Market</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <MiniRadial value={Math.round(item.capital_intensity || 0)} />
+                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Capital</span>
+                                </div>
                             </div>
 
                             {/* Footer: Price */}
