@@ -106,7 +106,7 @@ const Select = ({ value, onChange, options, placeholder = "Choose an option" }: 
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
+                <div className="absolute z-50 w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
                     {options.map((opt) => (
                         <div
                             key={opt}
@@ -555,11 +555,21 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <Label>Primary Category <span className="text-red-500">*</span></Label>
-                                    <Select value={primaryCategory} onChange={setPrimaryCategory} options={industryOptions} placeholder="Primary" />
+                                    <Select
+                                        value={primaryCategory}
+                                        onChange={setPrimaryCategory}
+                                        options={industryOptions.filter(c => c !== secondaryCategory)}
+                                        placeholder="Primary"
+                                    />
                                 </div>
                                 <div>
                                     <Label>Secondary Category <span className="text-red-500">*</span></Label>
-                                    <Select value={secondaryCategory} onChange={setSecondaryCategory} options={industryOptions} placeholder="Secondary" />
+                                    <Select
+                                        value={secondaryCategory}
+                                        onChange={setSecondaryCategory}
+                                        options={industryOptions.filter(c => c !== primaryCategory)}
+                                        placeholder="Secondary"
+                                    />
                                 </div>
                             </div>
                         </div>
