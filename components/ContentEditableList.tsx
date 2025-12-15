@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useRef, useEffect } from 'react';
+import { AutoResizeTextarea } from './AutoResizeTextarea';
 
 interface ContentEditableListProps {
     items: string[];
@@ -52,11 +53,7 @@ export const ContentEditableList: React.FC<ContentEditableListProps> = ({ items,
         }
     };
 
-    // Auto-resize textarea
-    const adjustHeight = (el: HTMLTextAreaElement) => {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-    };
+
 
     return (
         <div className="space-y-3">
@@ -68,19 +65,15 @@ export const ContentEditableList: React.FC<ContentEditableListProps> = ({ items,
                     </div>
 
                     {/* Input Area */}
-                    <textarea
-                        ref={el => inputRefs.current[index] = el}
+                    {/* Input Area */}
+                    <AutoResizeTextarea
+                        ref={el => { inputRefs.current[index] = el; }}
                         value={item}
-                        onChange={(e) => {
-                            handleChange(index, e.target.value);
-                            adjustHeight(e.target);
-                        }}
+                        onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
                         placeholder={placeholder || "Type here..."}
                         rows={1}
-                        className="w-full bg-zinc-950/30 border border-zinc-800 rounded-lg px-4 py-2.5 text-zinc-200 placeholder-zinc-600 focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-all resize-none min-h-[46px] overflow-hidden"
-                        style={{ height: 'auto' }} // Initial reset, effect handler should ideally handle this better but for quick resize
-                        onInput={(e) => adjustHeight(e.currentTarget)}
+                        className="w-full bg-zinc-950/30 border border-zinc-800 rounded-lg px-4 py-2.5 text-zinc-200 placeholder-zinc-600 focus:border-green-500 focus:ring-1 focus:ring-green-500/20 focus:outline-none transition-all min-h-[46px]"
                     />
                 </div>
             ))}
