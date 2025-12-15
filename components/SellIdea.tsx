@@ -106,7 +106,7 @@ const Select = ({ value, onChange, options, placeholder = "Choose an option" }: 
             </button>
 
             {isOpen && (
-                <div className="absolute z-[9999] w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
+                <div className="absolute z-[9999] w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-100 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-zinc-900">
                     {options.map((opt) => (
                         <div
                             key={opt}
