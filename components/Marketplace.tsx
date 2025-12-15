@@ -415,18 +415,18 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
 
                             {/* 3 Circular Indicators */}
-                            <div className="flex flex-nowrap gap-4 justify-center mb-6 mt-auto">
-                                <div className="flex flex-col items-center gap-1">
+                            <div className="flex flex-nowrap gap-5 justify-center mb-6 mt-auto">
+                                <div className="flex flex-col items-center gap-1.5">
                                     <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.uniqueness || 0)))} />
-                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Unique</span>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Unique</span>
                                 </div>
-                                <div className="flex flex-col items-center gap-1">
+                                <div className="flex flex-col items-center gap-1.5">
                                     <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.market_saturation || 0)))} />
-                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Market</span>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Market</span>
                                 </div>
-                                <div className="flex flex-col items-center gap-1">
+                                <div className="flex flex-col items-center gap-1.5">
                                     <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.capital_intensity || 0)))} />
-                                    <span className="text-[9px] text-zinc-500 uppercase font-medium">Capital</span>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Capital</span>
                                 </div>
                             </div>
 
