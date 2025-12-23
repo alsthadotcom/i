@@ -99,6 +99,28 @@ export interface AIScoring {
     updated_at?: string;
 }
 
+export interface Venture {
+    id: string;
+    user_id: string;
+    stage: 'Idea' | 'MVP' | 'Prototype' | 'Executed';
+    industry: string;
+    other_industry?: string | null;
+    business_type: string;
+    payer: string;
+    problem_details: Record<string, string>;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface VentureAnalysis {
+    id: string;
+    venture_id: string;
+    roadmap_data?: any;
+    risk_assessment?: any;
+    market_potential_score?: number;
+    created_at?: string;
+}
+
 export interface MarketplaceView {
     marketplace_id: string;
     idea_id: string;
@@ -204,6 +226,7 @@ export interface IdeaDetailView {
 export type NewIdeaListing = Omit<IdeaListing, 'idea_id' | 'created_at' | 'updated_at'>;
 export type NewAIScoring = Omit<AIScoring, 'ai_score_id' | 'created_at' | 'updated_at' | 'overall_score'>;
 export type NewUserInfo = Omit<UserInfo, 'user_id' | 'created_at' | 'updated_at'>;
+export type NewVenture = Omit<Venture, 'id' | 'created_at' | 'updated_at'>;
 
 export interface Like {
     like_id: string;

@@ -4,58 +4,17 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { MagnifyingGlassIcon, FunnelIcon, AdjustmentsHorizontalIcon, PlusIcon, XMarkIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { StarIcon } from '@heroicons/react/24/solid';
 import { getMarketplaceItems, MarketplaceFilters } from '../services/database';
 import type { MarketplaceView } from '../types/database';
-import { CATEGORIES } from '../constants/categories';
 import { CategoryDropdown } from './CategoryDropdown';
-
-// MiniRadial Component
-const MiniRadial: React.FC<{ value: number }> = ({ value }) => {
-    const radius = 16;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (value / 100) * circumference;
-
-    let colorClass = 'text-green-500';
-    if (value < 40) colorClass = 'text-red-500';
-    else if (value < 70) colorClass = 'text-yellow-500';
-
-    const strokeClass = colorClass.replace('text-', 'stroke-');
-
-    return (
-        <div className="relative w-16 h-16 flex items-center justify-center">
-            {/* Background */}
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 40 40">
-                <circle
-                    cx="20"
-                    cy="20"
-                    r={radius}
-                    className="stroke-zinc-800"
-                    strokeWidth="3"
-                    fill="transparent"
-                />
-                <circle
-                    cx="20"
-                    cy="20"
-                    r={radius}
-                    className={strokeClass}
-                    strokeWidth="3"
-                    fill="transparent"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                />
-            </svg>
-            <span className={`absolute text-sm font-bold ${colorClass}`}>{value}</span>
-        </div>
-    );
-};
 
 interface MarketplaceProps {
     user?: any;
+    onItemClick?: (item: MarketplaceView) => void;
+    onSellClick?: () => void;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ user, onItemClick, onSellClick }) => {
     const [items, setItems] = useState<MarketplaceView[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -66,7 +25,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
     const [priceRange, setPriceRange] = useState<number>(10000); // Max price
     const [hasMvp, setHasMvp] = useState(false);
     const [hasDocs, setHasDocs] = useState(false);
-    const [highScore, setHighScore] = useState(false); // High AI Score (>80)
     const [sortOption, setSortOption] = useState<{ field: 'price' | 'overall_score' | 'created_at', direction: 'asc' | 'desc' } | null>(null);
 
     // UI State
@@ -99,7 +57,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
 
     useEffect(() => {
         fetchItems();
-    }, [selectedCategory, sortOption, hasMvp, hasDocs, highScore]);
+    }, [selectedCategory, sortOption, hasMvp, hasDocs]);
 
     // Fetch items logic
     const fetchItems = async () => {
@@ -113,7 +71,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                 maxPrice: priceRange,
                 hasMvp: hasMvp,
                 hasDocs: hasDocs,
-                minScore: highScore ? 8 : undefined, // Map UI boolean to score > 8
                 sort: sortOption || undefined
             };
 
@@ -147,16 +104,17 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
     };
 
     const handleItemClick = (item: MarketplaceView) => {
-        if (!user) {
-            window.location.href = '/pages/login.html';
+        if (onItemClick) {
+            onItemClick(item);
         } else {
-            window.location.href = `/pages/details.html?id=${item.idea_id}`;
+            // Fallback
+            window.location.href = `/pages/sell.html?id=${item.idea_id}`;
         }
     };
 
     const handleAddListing = () => {
-        if (!user) {
-            window.location.href = '/pages/login.html';
+        if (onSellClick) {
+            onSellClick();
         } else {
             window.location.href = '/pages/sell.html';
         }
@@ -259,7 +217,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                     <div className="relative" ref={filterRef}>
                         <button
                             onClick={() => setShowFilterMenu(!showFilterMenu)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${showFilterMenu || hasMvp || hasDocs || highScore || priceRange < 10000 ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500'}`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${showFilterMenu || hasMvp || hasDocs || priceRange < 10000 ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500'}`}
                         >
                             <FunnelIcon className="w-4 h-4" />
                             Filter
@@ -313,13 +271,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                                                 {hasMvp && <CheckIcon className="w-3.5 h-3.5 text-black" />}
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center justify-between cursor-pointer" onClick={() => setHighScore(!highScore)}>
-                                            <span className="text-sm text-zinc-300">High AI Score (&gt;80)</span>
-                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${highScore ? 'bg-green-500 border-green-500' : 'border-zinc-700 bg-zinc-900'}`}>
-                                                {highScore && <CheckIcon className="w-3.5 h-3.5 text-black" />}
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div className="pt-2 border-t border-zinc-800 mt-2">
@@ -327,7 +278,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                                             onClick={() => {
                                                 setHasMvp(false);
                                                 setHasDocs(false);
-                                                setHighScore(false);
                                                 setPriceRange(10000);
                                             }}
                                             className="w-full py-2 text-xs text-zinc-500 hover:text-white transition-colors"
@@ -372,7 +322,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                             setSelectedCategory('');
                             setHasMvp(false);
                             setHasDocs(false);
-                            setHighScore(false);
                             setPriceRange(10000);
                             setSortOption(null);
                         }}
@@ -394,15 +343,11 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                         >
                             <div className={`absolute top-0 left-0 w-full h-0.5 ${getCategoryColor(index)} opacity-50`}></div>
 
-                            {/* Header: Username & Rating */}
+                            {/* Header: Username */}
                             <div className="flex justify-between items-start mb-3">
                                 <span className="text-[10px] text-zinc-300 border-zinc-700 border px-2 py-1 rounded font-mono">
                                     @{(item.username || 'User').replace(/^@/, '').toLowerCase()}
                                 </span>
-                                <div className="flex items-center space-x-1 text-zinc-400">
-                                    <StarIcon className="w-3 h-3" />
-                                    <span className="text-xs">{item.overall_score.toFixed(1)}</span>
-                                </div>
                             </div>
 
                             {/* Title & Description */}
@@ -412,23 +357,6 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user }) => {
                             <p className="text-zinc-400 text-sm line-clamp-2 mb-4 min-h-[2.5rem]">
                                 {item.description}
                             </p>
-
-
-                            {/* 3 Circular Indicators */}
-                            <div className="flex flex-nowrap gap-5 justify-center mb-6 mt-auto">
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.uniqueness || 0)))} />
-                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Unique</span>
-                                </div>
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.market_saturation || 0)))} />
-                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Market</span>
-                                </div>
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <MiniRadial value={Math.min(100, Math.max(0, Math.round(item.capital_intensity || 0)))} />
-                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Capital</span>
-                                </div>
-                            </div>
 
                             {/* Footer: Price */}
                             <div className="flex items-end justify-between border-t border-zinc-800 pt-4 mt-auto">

@@ -1,153 +1,255 @@
-# 🚀 Quick Start Guide - IDA Marketplace
+# Decision Intelligence Platform - Quick Start Guide
 
-## Prerequisites Completed ✅
-- ✅ Database schema created
-- ✅ TypeScript types defined
-- ✅ Service layer implemented
-- ✅ All components integrated
-- ✅ AI scoring updated to 6-metric system
+## ✅ What's Been Built
 
-## 3-Step Setup
+A complete **Decision Intelligence Platform** with:
+- 4-LLM research pipeline (Context → Research → Validation → Solutions)
+- Ant Design professional UI components
+- AntV data visualization charts (Bar, Column, Radar)
+- Mermaid Gantt roadmaps
+- Source citation system with credibility ratings
+- Multiple solution approaches (Lean, Moderate, Capital-Intensive)
 
-### 1️⃣ Apply Database Schema (5 minutes)
+## 📦 Files Created
 
-1. Open your **new Supabase project** dashboard
-2. Go to **SQL Editor** (left sidebar)
-3. Click **New Query**
-4. Open `supabase_schema.sql` in your code editor
-5. **Copy all** the SQL code
-6. **Paste** into Supabase SQL Editor
-7. Click **Run** (or press Ctrl/Cmd + Enter)
-8. ✅ You should see "Success. No rows returned"
+### Services (Backend Logic)
+- `services/decisionIntelligence.ts` - Main 4-LLM orchestrator
+- `services/webResearch.ts` - Internet research & citation extraction
+- `services/visualGenerator.ts` - Chart data preparation
+- `services/databaseDI.ts` - Database operations
 
-### 2️⃣ Create Storage Bucket (2 minutes)
+### Components (UI)
+- `components/DecisionIntelligence.tsx` - Main dashboard
+- `components/SolutionComparison.tsx` - Solution cards with AntV charts
+- `components/RoadmapViewer.tsx` - Interactive timeline
+- `components/ProofDisplay.tsx` - Sources & case studies
+- `components/DecisionIntelligence.css` - Custom styles
 
-1. In Supabase dashboard, go to **Storage** (left sidebar)
-2. Click **Create a new bucket**
-3. Bucket name: `idea-assets`
-4. **Public bucket**: Toggle ON
-5. Click **Create bucket**
-6. ✅ Bucket created! Folders will be auto-created on first upload
+### Types & Database
+- `types/decisionIntelligence.ts` - TypeScript interfaces
+- `DECISION_INTELLIGENCE_SCHEMA.sql` - Database schema
 
-### 3️⃣ Update Environment Variables (1 minute)
+### Documentation
+- `DECISION_INTELLIGENCE_INTEGRATION.md` - Full integration guide
+- `examples/DecisionIntelligenceIntegration.tsx` - Code examples
+- `walkthrough.md` - Complete implementation details
 
-1. Open `.env.local` in your project root
-2. Update these values:
+## 🚀 Quick Setup (3 Steps)
 
-```env
-# Get these from Supabase Dashboard → Settings → API
-SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### 1. Database Setup
 
-# Your existing API keys (keep these)
-GEMINI_API_KEY=your-existing-key
-OPENROUTER_API_KEY=your-existing-key
-```
-
-3. **Save** the file
-
-## 🎯 Start the Application
+Run in Supabase SQL Editor:
 
 ```bash
-npm run dev
+# Copy and run DECISION_INTELLIGENCE_SCHEMA.sql
 ```
 
-Visit: `http://localhost:3000`
+This creates:
+- `decision_intelligence_analysis` table
+- `research_sources` table  
+- RLS policies
+- Views and triggers
 
-## ✅ Test the Integration
+### 2. Verify Imports
 
-### Test 1: Sign Up
-1. Go to `/pages/signup.html`
-2. Create an account with:
-   - First Name: John
-   - Last Name: Doe
-   - Username: johndoe (will auto-format to @johndoe)
-   - Email: john@example.com
-   - Password: password123
-3. ✅ Should create user and redirect to marketplace
+These should already be added:
 
-### Test 2: Sell an Idea
-1. Click "Add new listing" in marketplace
-2. Fill in:
-   - Title: "AI-Powered Task Manager"
-   - Description: "Revolutionary task management with AI"
-   - Upload a PDF document
-3. Wait for AI analysis (shows 6 metrics)
-4. Set MVP: Yes → Digital/Saas → URL: https://demo.example.com
-5. Set Price: $999
-6. Click "Publish Listing"
-7. ✅ Should save and redirect to marketplace
+```typescript
+// index.tsx
+import 'antd/dist/reset.css'; // ✅ Added
 
-### Test 3: View Marketplace
-1. Go to `/pages/marketplace.html`
-2. ✅ Should see your idea listed
-3. Click on the idea
-4. ✅ Should show detail page with all 6 AI metrics
+// index.html
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script> // ✅ Added
+```
 
-### Test 4: Search
-1. In marketplace, type "AI" in search box
-2. Click "Search"
-3. ✅ Should filter results
+### 3. Use the Component
 
-## 🔍 Verify Database
+```typescript
+import DecisionIntelligence from './components/DecisionIntelligence';
+import './components/DecisionIntelligence.css';
 
-Check your Supabase dashboard:
+function MyPage() {
+  const ventureData = {
+    stage: 'idea',
+    industry: 'Technology',
+    business_type: 'SaaS',
+    problem_details: { /* ... */ },
+    solution_details: { /* ... */ }
+  };
+  
+  return (
+    <DecisionIntelligence
+      ventureId="venture-123"
+      ventureData={ventureData}
+      onComplete={(result) => console.log(result)}
+    />
+  );
+}
+```
 
-1. **Table Editor** → `user_info`
-   - Should see your user record
-   - Username should be `@johndoe`
+## 📊 What the Pipeline Does
 
-2. **Table Editor** → `idea_listing`
-   - Should see your idea
-   - Check document_url is populated
-   - Check MVP fields
+### Stage 1: Context Analyzer (GPT-4o-mini)
+- Extracts user's situation, resources, constraints
+- Generates targeted research queries
+- Identifies key decision points
 
-3. **Table Editor** → `ai_scoring`
-   - Should see AI scores for your idea
-   - All 6 metrics should be present
+### Stage 2: Research Engine (GPT-4o)
+- Conducts market research (LLM-simulated)
+- Finds competitor analysis
+- Discovers proven frameworks & methods
+- Cites sources with credibility scores
 
-4. **Storage** → `idea-assets`
-   - Should see uploaded documents in `documents/` folder
+### Stage 3: Validation Comparator (Claude 3.5)
+- Cross-references user claims with research
+- Identifies contradictions
+- Assesses overall credibility
+- Provides honest recommendations
 
-## 🎊 You're All Set!
+### Stage 4: Solution Architect (GPT-4o)
+- Generates 3+ solution approaches
+- Creates phase-by-phase roadmaps
+- Links proven case studies
+- Calculates capital/time requirements
 
-Your IDA Marketplace is now fully integrated with Supabase and ready to use!
+## 🎨 Visual Components
 
-## 📚 What's Been Integrated
+### Solution Comparison
+- **Card View**: Side-by-side comparison cards
+- **Chart View**: AntV Bar/Column/Radar charts
+- **Table View**: Traditional data table
+- Filters by category (Lean/Moderate/Capital-Intensive)
 
-- ✅ User authentication with database records
-- ✅ Idea listing with file uploads
-- ✅ AI scoring with 6 metrics
-- ✅ Marketplace with search
-- ✅ Idea details page
-- ✅ MVP support (Digital & Physical)
-- ✅ Document management (1 main + 3 additional)
+### Roadmap Viewer
+- Mermaid Gantt timeline
+- Ant Design Timeline with expandable phases
+- Milestones, deliverables, costs
+- Proven examples showcase
+- Risk factors & mitigation strategies
 
-## 🆘 Troubleshooting
+### Proof Display
+- Filterable by source type
+- Expandable case studies with success metrics
+- Research sources list with credibility badges
+- Methodology transparency note
 
-### "Missing Supabase credentials" error
-- Check `.env.local` has correct SUPABASE_URL and SUPABASE_ANON_KEY
-- Restart dev server after updating env vars
+## 🎯 Integration Options
 
-### "Failed to upload document" error
-- Verify storage bucket `idea-assets` exists
-- Check bucket is set to Public
-- Verify you're logged in
+See `examples/DecisionIntelligenceIntegration.tsx` for:
 
-### "Failed to create idea listing" error
-- Check SQL schema was applied successfully
-- Verify user_info record exists for your user
-- Check browser console for detailed error
+1. **Standalone Page** - Full-screen analysis dashboard
+2. **SellIdea Integration** - Add after form submission
+3. **Modal Integration** - Popup for existing ventures
+4. **Custom Theme** - Light/dark mode examples
+5. **Error Handling** - Production-ready patterns
 
-### AI analysis not working
-- Verify OPENROUTER_API_KEY is set in `.env.local`
-- Check you uploaded a PDF file
-- Look for errors in browser console
+## 🔧 Customization
 
-## 📞 Need Help?
+### Change Theme Colors
 
-Check the `DATABASE_INTEGRATION_STATUS.md` file for:
-- Detailed component documentation
-- Database schema overview
-- Security features
-- Testing checklist
+```typescript
+import { ConfigProvider, theme } from 'antd';
+
+<ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#00ff88', // Your brand color
+      colorSuccess: '#52c41a',
+      colorWarning: '#faad14',
+    },
+  }}
+>
+  <DecisionIntelligence ... />
+</ConfigProvider>
+```
+
+### Use Real Search API
+
+Replace LLM simulation in `webResearch.ts`:
+
+```typescript
+// Instead of callAI(), use:
+const results = await fetch('https://api.tavily.com/search', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    api_key: process.env.TAVILY_API_KEY,
+    query: query
+  })
+});
+```
+
+### Customize Prompts
+
+Edit prompts in `services/decisionIntelligence.ts`:
+- `runContextAnalyzer()` - Stage 1 prompt
+- `runResearchEngine()` - Stage 2 prompt
+- `runValidationComparator()` - Stage 3 prompt
+- `runSolutionArchitect()` - Stage 4 prompt
+
+## 📦 Packages Used
+
+```bash
+npm install antd @ant-design/charts @ant-design/icons mermaid
+```
+
+- `antd` (203 packages) - UI component library
+- `@ant-design/charts` - AntV data visualization
+- `@ant-design/icons` - Icon library
+- `mermaid` (133 packages) - Diagram generation
+
+**Total: ~336 packages installed** ✅
+
+## 🧪 Testing
+
+1. **Run dev server**: `npm run dev`
+2. **Test with sample data**:
+   ```typescript
+   const testVenture = {
+     stage: 'idea',
+     industry: 'Technology',
+     business_type: 'SaaS',
+     // ...
+   };
+   ```
+3. **Watch pipeline progress** in the Steps component
+4. **Verify charts render** in Solution Comparison
+5. **Check Mermaid diagram** in Roadmap Viewer
+6. **Inspect database** for saved analysis
+
+## 🚨 Troubleshooting
+
+**Mermaid not rendering?**
+- Check browser console for script load errors
+- Ensure script tag is before React app loads
+- Try `mermaid.initialize({ startOnLoad: false, theme: 'dark' })`
+
+**Charts not showing?**
+- Verify `@ant-design/charts` installed
+- Check container has explicit height
+- Inspect data format matches chart requirements
+
+**TypeScript errors?**
+- Run `npm install` to ensure all types are installed
+- Check `types/decisionIntelligence.ts` exports all types
+
+**Database errors?**
+- Verify RLS policies are enabled
+- Check user has correct permissions
+- Ensure `venture_id` FK exists in ventures table
+
+## 📚 Full Documentation
+
+- [Integration Guide](./DECISION_INTELLIGENCE_INTEGRATION.md) - Detailed setup
+- [Walkthrough](../../../.gemini/antigravity/brain/.../walkthrough.md) - Full implementation
+- [Examples](./examples/DecisionIntelligenceIntegration.tsx) - Code patterns
+
+## 🎉 You're Ready!
+
+The Decision Intelligence Platform is fully implemented and ready to use. Just:
+1. ✅ Run the database schema
+2. ✅ Import the component
+3. ✅ Pass venture data
+4. ✅ Watch the magic happen!
+
+For support or questions, refer to the documentation above.

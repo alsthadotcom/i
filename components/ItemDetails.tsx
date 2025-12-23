@@ -324,7 +324,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ ideaId, onBack }) => {
                                     <StarIcon className="w-4 h-4 text-yellow-500" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="font-bold text-white leading-none">{item.overall_score.toFixed(1)}</span>
+                                    <span className="font-bold text-white leading-none">{(item.overall_score || 0).toFixed(1)}</span>
                                     <span className="text-xs text-zinc-500 uppercase">AI Score</span>
                                 </div>
                             </div>

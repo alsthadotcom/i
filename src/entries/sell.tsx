@@ -7,29 +7,8 @@ import { handleNavigation } from '../utils/navigation';
 import '../../index.css';
 
 const SellPage = () => {
+    // Authenticated user if available, otherwise guest
     const { user, handleLogout } = useAuthUser();
-
-    // Redirect non-logged-in users to login page
-    useEffect(() => {
-        if (user === null) {
-            // Only redirect if we're sure there's no user (not during initial loading)
-            const timer = setTimeout(() => {
-                if (!user) {
-                    window.location.href = '/pages/login.html';
-                }
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [user]);
-
-    // Show loading or nothing while checking auth
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-zinc-950 text-zinc-50 flex items-center justify-center">
-                <div className="text-zinc-400">Loading...</div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-50 bg-dot-grid selection:bg-green-500/30">

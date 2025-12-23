@@ -3,64 +3,80 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import {
-    ArrowLeftIcon,
-    XMarkIcon,
-    ChevronRightIcon,
-    ChevronLeftIcon,
-} from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
-import { createIdeaListing, createAIScoring, uploadDocument, getIdeaDetails, updateIdeaListing } from '../services/database';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { AutoResizeTextarea } from './AutoResizeTextarea';
+import { createVenture, getAnonymousId, createIdeaListing, getIdeaListingById, getVentureByUserId, updateVenture, updateIdeaListing, saveVentureAnalysis } from '../services/database';
 import { supabase } from '../services/supabase';
-import { CATEGORIES } from '../constants/categories';
-import { ContentEditableList } from './ContentEditableList';
+import { runFullPipeline, ValidationLog, ValidationResult } from '../services/validationChain';
+import { TargetedModel, toonDecodeFromStorage } from '../services/puter';
+import DecisionIntelligence from './DecisionIntelligence';
+import { ConfigProvider, theme } from 'antd';
 
-// Local Categories Fallback
-const DEFAULT_CATEGORIES = [
-    "Technology", "Finance", "Health", "Education", "Ecommerce",
-    "Media & Content", "Real Estate", "Logistics", "Agriculture",
-    "Energy", "Manufacturing", "Gaming", "Consumer Goods", "Other"
+// --- Constants ---
+
+const STAGES = ["Idea", "MVP", "Prototype", "Executed"];
+
+const INDUSTRIES = [
+    "Agriculture",
+    "Hospitality",
+    "Fintech",
+    "Automobile–Manufacturing",
+    "Government",
+    "Tech–Digital",
+    "Other"
 ];
 
-const INDUSTRIES = typeof CATEGORIES !== 'undefined' ? CATEGORIES : DEFAULT_CATEGORIES;
+const BUSINESS_TYPES = ["Product", "Service", "SaaS", "Marketplace", "Contract-based"];
+
+const PAYERS = ["Consumers", "Businesses", "Government", "Mixed"];
+
+const PROBLEMS_EARLY = [
+    "Financial Problem",
+    "Resource Problem",
+    "Unaware of the market conditions (Demand & Supply, TAM, etc)",
+    "Unaware of the market competitions",
+    "Unaware of the legal stuffs",
+    "Marketing & Branding Problem",
+    "Need a Roadmap/Guide"
+];
+
+const PROBLEMS_EXECUTED = [
+    "Financial Problem",
+    "Resource Problem",
+    "Marketing & Branding Problem",
+    "Scaling Problem",
+    "Market Competition Problem",
+    "Total Addressable Market Problem",
+    "Distribution & Logistics Problem",
+    "Legal Problem"
+];
 
 // --- Interfaces ---
+
 interface SellIdeaProps {
     onBack: () => void;
 }
 
-// --- Reusable Form Components ---
+// --- Components ---
 
-import { AutoResizeTextarea } from './AutoResizeTextarea';
-
-const Label = ({ children }: { children?: React.ReactNode }) => (
-    <label className="block text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider text-[11px] font-mono">
-        {children}
+const Label = ({ children, required }: { children: React.ReactNode, required?: boolean }) => (
+    <label className="block text-zinc-500 text-[10px] uppercase tracking-widest font-mono font-bold mb-3">
+        {children} {required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
 );
 
-const Input = ({ value, onChange, placeholder, maxLength, type = "text" }: any) => (
-    <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        className="w-full bg-zinc-950/50 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[#22C55E] focus:ring-1 focus:ring-[#22C55E] focus:outline-none transition-colors"
-    />
-);
-
-const TextArea = ({ value, onChange, placeholder, rows = 3 }: any) => (
-    <AutoResizeTextarea
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        rows={rows}
-        className="w-full bg-zinc-950/50 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[#22C55E] focus:ring-1 focus:ring-[#22C55E] focus:outline-none transition-colors"
-    />
-);
-
-const Select = ({ value, onChange, options, placeholder = "Choose an option" }: { value: string, onChange: (val: string) => void, options: string[], placeholder?: string }) => {
+const CustomSelect = ({
+    value,
+    onChange,
+    options,
+    placeholder = "Select Option"
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    options: string[];
+    placeholder?: string;
+}) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -74,936 +90,578 @@ const Select = ({ value, onChange, options, placeholder = "Choose an option" }: 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSelect = (option: string) => {
-        onChange(option);
-        setIsOpen(false);
-    };
-
     return (
-        <div className="relative group" ref={containerRef}>
+        <div className="relative w-full" ref={containerRef}>
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-              w-full text-left flex items-center justify-between
-              bg-zinc-950/50 border rounded-lg px-4 py-3 
-              transition-all duration-200 ease-in-out
-              focus:outline-none
-              ${isOpen
-                        ? 'border-[#22C55E] ring-1 ring-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.1)]'
-                        : 'border-zinc-700 hover:border-zinc-500'
-                    }
-          `}
+                    w-full flex items-center justify-between px-6 py-4
+                    bg-black/40 border rounded-xl transition-all duration-300 text-sm
+                    ${isOpen ? 'border-[#22C55E]/50' : 'border-zinc-800/80 hover:border-zinc-700'}
+                `}
             >
-                <span className={`block truncate ${value ? 'text-zinc-100' : 'text-zinc-500'}`}>
+                <span className={value ? 'text-zinc-100' : 'text-zinc-500'}>
                     {value || placeholder}
                 </span>
-                <ChevronRightIcon
-                    className={`
-                  h-4 w-4 transition-transform duration-300 transform rotate-90
-                  ${isOpen ? '-rotate-90 text-[#22C55E]' : 'text-zinc-500 group-hover:text-zinc-300'}
-              `}
-                />
+                <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#22C55E]' : 'text-zinc-500'}`} />
             </button>
 
-            {isOpen && (
-                <div className="absolute z-[9999] w-full mt-2 bg-[#09090b] border border-zinc-800 rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-100 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-zinc-900">
-                    {options.map((opt) => (
-                        <div
-                            key={opt}
-                            onClick={() => handleSelect(opt)}
-                            className={`
-                      relative px-4 py-3 cursor-pointer text-sm transition-colors border-b border-zinc-900 last:border-0 flex items-center justify-between
-                      ${value === opt
-                                    ? 'bg-[#22C55E]/10 text-[#22C55E]'
-                                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'
-                                }
-                  `}
-                        >
-                            <span className="font-medium">{opt}</span>
-                            {value === opt && (
-                                <CheckCircleIconSolid className="w-4 h-4 text-[#22C55E]" />
-                            )}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute z-50 w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl"
+                    >
+                        <div className="max-h-60 overflow-y-auto py-2">
+                            {options.map((opt) => (
+                                <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(opt);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`
+                                        w-full text-left px-5 py-3 text-sm transition-colors
+                                        ${value === opt ? 'bg-[#22C55E]/10 text-[#22C55E]' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100'}
+                                    `}
+                                >
+                                    {opt}
+                                </button>
+                            ))}
                         </div>
-                    ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+const ToggleOption: React.FC<{
+    label: string;
+    required: boolean;
+    onChange: (val: boolean) => void;
+}> = ({
+    label,
+    required,
+    onChange
+}) => {
+        return (
+            <div className={`
+            flex items-center justify-between p-5 rounded-2xl border transition-all duration-300
+            ${required ? 'bg-[#22C55E]/5 border-[#22C55E]/20' : 'bg-black/20 border-zinc-800 hover:border-zinc-700'}
+        `}>
+                <div className="flex flex-col gap-1">
+                    <span className={`text-sm font-medium transition-colors ${required ? 'text-zinc-100' : 'text-zinc-400'}`}>
+                        {label}
+                    </span>
+                    <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-mono">
+                        {required ? 'Required for analysis' : 'Not required'}
+                    </span>
                 </div>
-            )}
+
+                <button
+                    type="button"
+                    onClick={() => onChange(!required)}
+                    className={`
+                    relative w-12 h-6 rounded-full p-1 transition-all duration-300
+                    ${required ? 'bg-[#22C55E]' : 'bg-zinc-800'}
+                `}
+                >
+                    <motion.div
+                        animate={{ x: required ? 24 : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="w-4 h-4 bg-white rounded-full shadow-lg"
+                    />
+                </button>
+            </div>
+        );
+    };
+
+
+const PipelineStep = ({ model, role, logs, targetStep }: { model: string, role: string, logs: ValidationLog[], targetStep: number }) => {
+    // Find logs for this specific step
+    const stepLog = logs.find(l => l.step === targetStep && l.model === model);
+    const isCompleted = logs.some(l => l.step > targetStep) || (stepLog?.status === 'completed');
+    const isProcessing = stepLog?.status === 'processing';
+    const isPending = !stepLog && !isCompleted;
+
+    return (
+        <div className={`
+            flex items-center gap-4 p-4 rounded-xl border transition-all duration-500
+            ${isProcessing ? 'bg-[#22C55E]/5 border-[#22C55E]/30 scale-105 shadow-lg shadow-[#22C55E]/10' : ''}
+            ${isCompleted ? 'bg-zinc-900/50 border-zinc-800 opacity-60' : ''}
+            ${isPending ? 'bg-black/20 border-zinc-800/50 opacity-40' : ''}
+        `}>
+            {/* Status Icon */}
+            <div className={`
+                w-10 h-10 rounded-full flex items-center justify-center border transition-colors
+                ${isCompleted ? 'bg-[#22C55E] border-[#22C55E] text-black' : ''}
+                ${isProcessing ? 'bg-transparent border-[#22C55E] text-[#22C55E] animate-pulse' : ''}
+                ${isPending ? 'bg-zinc-800 border-zinc-700 text-zinc-600' : ''}
+            `}>
+                {isCompleted ? <CheckIcon className="w-6 h-6" /> : (
+                    <span className="font-mono font-bold text-xs">{targetStep}</span>
+                )}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1">
+                <div className="flex items-center justify-between mb-0.5">
+                    <h4 className={`font-bold text-sm ${isProcessing ? 'text-white' : 'text-zinc-300'}`}>{model}</h4>
+                    {isProcessing && <span className="text-[10px] text-[#22C55E] animate-pulse font-mono">PROCESSING</span>}
+                    {isCompleted && <span className="text-[10px] text-zinc-500 font-mono">DONE</span>}
+                </div>
+                <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider mb-1">{role}</p>
+
+                {/* Real-time Log Message */}
+                <div className="h-5 overflow-hidden">
+                    <AnimatePresence mode="wait">
+                        {stepLog?.message && (
+                            <motion.p
+                                key={stepLog.message}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-xs text-zinc-400 truncate"
+                            >
+                                {stepLog.message}
+                            </motion.p>
+                        )}
+                        {!stepLog?.message && isPending && <p className="text-xs text-zinc-600">Waiting to start...</p>}
+                    </AnimatePresence>
+                </div>
+            </div>
         </div>
     );
 };
 
 export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
-    const [editId, setEditId] = useState<string | null>(null);
-    const [isLoadingData, setIsLoadingData] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState<string | null>(null);
-
-    // --- State: V4 Granular Schema ---
-
-    // Step 1: Idea Info
-    const [title, setTitle] = useState('');
-    const [shortDescription, setShortDescription] = useState('');
-    const [primaryCategory, setPrimaryCategory] = useState('');
-    const [secondaryCategory, setSecondaryCategory] = useState('');
-
-    // Step 2: Customer Pain
-    const [painWho, setPainWho] = useState(''); // Para
-    const [painProblem, setPainProblem] = useState<string[]>(['']); // List
-    const [painFrequency, setPainFrequency] = useState(''); // Para
-
-    // Step 3: Current Solutions
-    const [solutionCurrent, setSolutionCurrent] = useState<string[]>(['']); // List
-    const [solutionInsufficient, setSolutionInsufficient] = useState<string[]>(['']); // List
-    const [solutionRisks, setSolutionRisks] = useState(''); // Para
-
-    // Step 4: Execution Steps
-    const [execSteps, setExecSteps] = useState<string[]>(['']); // List
-    const [execSkills, setExecSkills] = useState<string[]>(['']); // List
-    const [execRisks, setExecRisks] = useState(''); // Para
-
-    // Step 5: Growth Plan
-    const [growthAcquisition, setGrowthAcquisition] = useState<string[]>(['']); // List
-    const [growthDrivers, setGrowthDrivers] = useState(''); // Para
-    const [growthExpansion, setGrowthExpansion] = useState<string[]>(['']); // List
-
-    // Step 6: Solution Details
-    const [solWhat, setSolWhat] = useState(''); // Para
-    const [solHow, setSolHow] = useState(''); // Para
-    const [solWhyBetter, setSolWhyBetter] = useState(''); // Para
-
-    // Step 7: Revenue Plan
-    const [revWhoPays, setRevWhoPays] = useState(''); // Para
-    const [revFlow, setRevFlow] = useState(''); // Para
-    const [revRetention, setRevRetention] = useState(''); // Para
-
-    // Step 8: Impact
-    const [impactWho, setImpactWho] = useState(''); // Para
-    const [impactImprovement, setImpactImprovement] = useState(''); // Para
-    const [impactScale, setImpactScale] = useState(''); // Para
-
-    // Step 9: Finalize
-    const [price, setPrice] = useState('');
-    const [mainDocument, setMainDocument] = useState<File | null>(null);
-    const [existingMainDocUrl, setExistingMainDocUrl] = useState<string | null>(null);
-    const [additionalDocuments, setAdditionalDocuments] = useState<File[]>([]);
-    const [existingAdditionalDocs, setExistingAdditionalDocs] = useState<string[]>([]);
-    const [hasAdditionalDocs, setHasAdditionalDocs] = useState<boolean | null>(null);
-
-    // MVP State
-    const [hasMvp, setHasMvp] = useState<boolean | null>(null);
-    const [mvpType, setMvpType] = useState<'digital' | 'physical' | null>(null);
-    const [mvpUrl, setMvpUrl] = useState('');
-    const [mvpImage, setMvpImage] = useState<File | null>(null);
-    const [mvpVideo, setMvpVideo] = useState<File | null>(null);
-    const [existingMvpImageUrl, setExistingMvpImageUrl] = useState<string | null>(null);
-    const [existingMvpVideoUrl, setExistingMvpVideoUrl] = useState<string | null>(null);
-
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-
-    // Navigation
+    // --- State ---
     const [currentStep, setCurrentStep] = useState(1);
-    const TOTAL_STEPS = 9;
+    const [isEditing, setIsEditing] = useState(false);
+    const [editIdeaId, setEditIdeaId] = useState<string | null>(null);
+    const [editVentureId, setEditVentureId] = useState<string | null>(null);
 
-    const stepTitles = [
-        "Idea Info",
-        "Customer Pain",
-        "Current Solutions",
-        "Execution Steps",
-        "Growth Plan",
-        "Solution Details",
-        "Revenue Plan",
-        "Impact",
-        "Finalize Listing"
-    ];
+    // Step 1: Identification
+    const [stage, setStage] = useState("");
+    const [industry, setIndustry] = useState("");
+    const [otherIndustry, setOtherIndustry] = useState("");
+    const [businessType, setBusinessType] = useState("");
+    const [payer, setPayer] = useState("");
 
-    // --- Loading Edit Data ---
+    // Step 2: Problem Toggles
+    const [requiredProblems, setRequiredProblems] = useState<Record<string, boolean>>({});
+
+    // Step 3+: Problem Details
+    const [problemDetails, setProblemDetails] = useState<Record<string, string>>({});
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [debugData, setDebugData] = useState<{ input: any; output: any } | null>(null);
+    const [pipelineLogs, setPipelineLogs] = useState<ValidationLog[]>([]);
+    const [finalAnalysis, setFinalAnalysis] = useState<any>(null);
+
+    // --- Effects ---
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('edit');
-        if (id) {
-            setEditId(id);
-            loadListingData(id);
-        }
-    }, []);
+        const loadDataForEdit = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (!id) return;
 
-    const loadListingData = async (id: string) => {
-        setIsLoadingData(true);
-        try {
-            const { data, error } = await getIdeaDetails(id);
-            if (error || !data) throw error || new Error('Listing not found');
+            setEditIdeaId(id);
+            setIsEditing(true);
 
-            // Populate State
-            setTitle(data.title);
-            setShortDescription(data.description || data.one_line_description || '');
-            setPrimaryCategory(data.category || '');
-            setSecondaryCategory(data.secondary_category || '');
+            try {
+                // 1. Fetch the listing to ensure ownership/existence
+                const { data: idea, error: ideaError } = await getIdeaListingById(id);
+                if (ideaError || !idea) throw new Error("Listing not found");
 
-            // V4 Fields
-            setPainWho(data.pain_who || '');
-            setPainProblem(data.pain_problem || ['']);
-            setPainFrequency(data.pain_frequency || '');
+                // 2. Fetch the corresponding venture (heuristic: latest for this user)
+                // In a stricter schema, we'd use a foreign key.
+                const { data: venture, error: ventureError } = await getVentureByUserId(idea.user_id);
 
-            setSolutionCurrent(data.solution_current || ['']);
-            setSolutionInsufficient(data.solution_insufficient || ['']);
-            setSolutionRisks(data.solution_risks || '');
+                if (venture) {
+                    setEditVentureId(venture.id);
+                    setStage(venture.stage);
+                    setIndustry(venture.industry); // Might be "Other" or specific
+                    if (!INDUSTRIES.includes(venture.industry) && venture.industry !== 'Other') {
+                        // Simplify logic: if not in list, assume 'Other' + val, or just set raw if list is flexible
+                        // For now, if it's not in known list and exists, put it in 'Other'
+                        // But for simplicity, let's just set it directly if it matches logic
+                    }
+                    if (venture.industry && !INDUSTRIES.includes(venture.industry)) {
+                        setIndustry('Other');
+                        setOtherIndustry(venture.industry);
+                    } else {
+                        setIndustry(venture.industry);
+                    }
 
-            setExecSteps(data.exec_steps || ['']);
-            setExecSkills(data.exec_skills || ['']);
-            setExecRisks(data.exec_risks || '');
+                    setBusinessType(venture.business_type);
+                    setPayer(venture.payer);
 
-            setGrowthAcquisition(data.growth_acquisition || ['']);
-            setGrowthDrivers(data.growth_drivers || '');
-            setGrowthExpansion(data.growth_expansion || ['']);
-
-            setSolWhat(data.sol_what || '');
-            setSolHow(data.sol_how || '');
-            setSolWhyBetter(data.sol_why_better || '');
-
-            setRevWhoPays(data.rev_who_pays || '');
-            setRevFlow(data.rev_flow || '');
-            setRevRetention(data.rev_retention || '');
-
-            setImpactWho(data.impact_who || '');
-            setImpactImprovement(data.impact_improvement || '');
-            setImpactScale(data.impact_scale || '');
-
-            setPrice(data.price.toString());
-            setExistingMainDocUrl(data.document_url);
-
-            const extraDocs = [data.additional_doc_1, data.additional_doc_2, data.additional_doc_3].filter(Boolean) as string[];
-            setExistingAdditionalDocs(extraDocs);
-
-            // Populate Additional Docs Toggle
-            if (extraDocs.length > 0) {
-                setHasAdditionalDocs(true);
-            } else {
-                // Explicitly set to false if no docs, or keep null? 
-                // If we have data (even if empty), we can say "No".
-                setHasAdditionalDocs(false);
-            }
-
-            // Populate MVP Toggle
-            if (data.mvp_type) {
-                setHasMvp(true);
-                setMvpType(data.mvp_type as any);
-                setMvpUrl(data.mvp_url || '');
-                setExistingMvpImageUrl(data.mvp_image_url || null);
-                setExistingMvpVideoUrl(data.mvp_video_url || null);
-            } else {
-                setHasMvp(false);
-            }
-
-        } catch (err) {
-            console.error('Failed to load listing', err);
-            alert('Failed to load listing for editing.');
-        } finally {
-            setIsLoadingData(false);
-        }
-    };
-
-    // --- Validation ---
-    const isListValid = (list: string[]) => list.length > 0 && list.some(item => item.length > 0);
-    const industryOptions = [...INDUSTRIES];
-
-    const isStepValid = useMemo(() => {
-        switch (currentStep) {
-            case 1: // Info
-                return title.length > 0 &&
-                    shortDescription.length > 0 &&
-                    primaryCategory !== '' &&
-                    secondaryCategory !== '';
-            case 2: // Customer Pain
-                return painWho.length > 0 && isListValid(painProblem) && painFrequency.length > 0;
-            case 3: // Current Solutions
-                return isListValid(solutionCurrent) && isListValid(solutionInsufficient) && solutionRisks.length > 0;
-            case 4: // Execution Steps
-                return isListValid(execSteps) && isListValid(execSkills) && execRisks.length > 0;
-            case 5: // Growth Plan
-                return isListValid(growthAcquisition) && growthDrivers.length > 0 && isListValid(growthExpansion);
-            case 6: // Solution Details
-                return solWhat.length > 0 && solHow.length > 0 && solWhyBetter.length > 0;
-            case 7: // Revenue Plan
-                return revWhoPays.length > 0 && revFlow.length > 0 && revRetention.length > 0;
-            case 8: // Impact
-                return impactWho.length > 0 && impactImprovement.length > 0 && impactScale.length > 0;
-            case 9: // Docs & Price
-                const hasDoc = (mainDocument !== null || existingMainDocUrl !== null);
-                const validPrice = !isNaN(parseFloat(price)) && parseFloat(price) > 0;
-
-                // Additional Docs Validation: Must answer Yes/No. If Yes, must have at least 1 doc.
-                if (hasAdditionalDocs === null) return false;
-                if (hasAdditionalDocs && additionalDocuments.length === 0 && existingAdditionalDocs.length === 0) return false;
-
-                // MVP Validation: Must answer Yes/No. If Yes, must have valid fields.
-                if (hasMvp === null) return false;
-                if (hasMvp) {
-                    if (mvpType === 'digital') {
-                        if (mvpUrl.length === 0) return false;
-                    } else if (mvpType === 'physical') {
-                        // For physical, we need image AND video. 
-                        // Note: If editing, we might not have them in state if loadListingData didn't load them.
-                        // Assuming new entry logic for now as loadListingData fix is out of scope of this specific "validation" request but practically needed.
-                        // Ideally we check if (mvpImage || existingMvpImage) && (mvpVideo || existingMvpVideo).
-                        // Since I don't have existingMvp vars, I will just check current files for now. 
-                        // WARN: This might block editing if not re-uploaded.
-                        if (!mvpImage && !existingMvpImageUrl) return false;
-                        if (!mvpVideo && !existingMvpVideoUrl) return false;
+                    // Populate Problems
+                    if (venture.problem_details) {
+                        setProblemDetails(venture.problem_details as any);
+                        const problems = Object.keys(venture.problem_details);
+                        const newReq: Record<string, boolean> = {};
+                        problems.forEach(p => newReq[p] = true);
+                        setRequiredProblems(newReq);
                     }
                 }
+            } catch (err) {
+                console.error("Failed to load edit data", err);
+            }
+        };
 
-                return hasDoc && validPrice;
-            default:
-                return true;
-        }
-    }, [
-        currentStep, title, shortDescription, primaryCategory, secondaryCategory,
-        painWho, painProblem, painFrequency,
-        solutionCurrent, solutionInsufficient, solutionRisks,
-        execSteps, execSkills, execRisks,
-        growthAcquisition, growthDrivers, growthExpansion,
-        solWhat, solHow, solWhyBetter,
-        revWhoPays, revFlow, revRetention,
-        impactWho, impactImprovement, impactScale,
-        mainDocument, existingMainDocUrl, price,
-        hasAdditionalDocs, additionalDocuments, existingAdditionalDocs,
-        hasMvp, mvpType, mvpUrl, mvpImage, mvpVideo
-    ]);
+        loadDataForEdit();
+    }, []);
+
+    // --- Derived State ---
+    const isEarlyStage = stage === "Idea" || stage === "MVP" || stage === "Prototype";
+    const problemList = isEarlyStage ? PROBLEMS_EARLY : PROBLEMS_EXECUTED;
+
+    const selectedProblemSteps = useMemo(() => {
+        return problemList.filter(p => requiredProblems[p]);
+    }, [problemList, requiredProblems]);
+
+    const totalSteps = 2 + selectedProblemSteps.length;
 
     // --- Handlers ---
-
-    const handleNext = () => {
-        if (currentStep < TOTAL_STEPS && isStepValid) {
-            setCurrentStep(prev => prev + 1);
-            window.scrollTo(0, 0);
-        }
+    const handleToggleProblem = (prob: string, val: boolean) => {
+        setRequiredProblems(prev => ({ ...prev, [prob]: val }));
     };
 
-    const handleBack = () => {
-        if (currentStep > 1) {
-            setCurrentStep(prev => prev - 1);
-            window.scrollTo(0, 0);
+    const handleNext = () => {
+        if (currentStep === totalSteps) {
+            handleSubmit();
+            return;
         }
+        if (currentStep === 1) {
+            if (!stage || !industry || (industry === 'Other' && !otherIndustry) || !businessType || !payer) return;
+        }
+        setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleSubmit = async () => {
-        if (!isStepValid) return;
-
         setIsSubmitting(true);
         try {
+            // Get current user or generate anonymous ID
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('You must be logged in');
+            const userId = user?.id || getAnonymousId();
 
-            // 1. Upload Main Document
-            let mainDocUrl = existingMainDocUrl || '';
-            if (mainDocument) {
-                const { data } = await uploadDocument(mainDocument, user.id, 'documents');
-                if (data) mainDocUrl = data.url;
-            }
+            // 1. Create OR Update Venture Record
+            let targetVentureId = isEditing ? editVentureId : null;
 
-            // 2. Upload Additional Docs
-            const newAdditionalUrls: string[] = [];
-            for (const file of additionalDocuments) {
-                const { data } = await uploadDocument(file, user.id, 'documents');
-                if (data) newAdditionalUrls.push(data.url);
-            }
-            const additionalDocUrls = [...existingAdditionalDocs, ...newAdditionalUrls];
-
-            // 3. Upload MVP Assets
-            let mvpImgUrl: string | null = null;
-            let mvpVidUrl: string | null = null;
-
-            if (hasMvp && mvpType === 'physical') {
-                if (mvpImage) {
-                    const { data } = await uploadDocument(mvpImage, user.id, 'documents');
-                    if (data) mvpImgUrl = data.url;
-                }
-                if (mvpVideo) {
-                    const { data } = await uploadDocument(mvpVideo, user.id, 'documents');
-                    if (data) mvpVidUrl = data.url;
-                }
-            }
-
-            const listingData: any = {
-                title,
-                one_line_description: shortDescription,
-                category: primaryCategory,
-                secondary_category: secondaryCategory,
-
-                pain_who: painWho,
-                pain_problem: painProblem.filter(s => s.trim()),
-                pain_frequency: painFrequency,
-
-                solution_current: solutionCurrent.filter(s => s.trim()),
-                solution_insufficient: solutionInsufficient.filter(s => s.trim()),
-                solution_risks: solutionRisks,
-
-                exec_steps: execSteps.filter(s => s.trim()),
-                exec_skills: execSkills.filter(s => s.trim()),
-                exec_risks: execRisks,
-
-                growth_acquisition: growthAcquisition.filter(s => s.trim()),
-                growth_drivers: growthDrivers,
-                growth_expansion: growthExpansion.filter(s => s.trim()),
-
-                sol_what: solWhat,
-                sol_how: solHow,
-                sol_why_better: solWhyBetter,
-
-                rev_who_pays: revWhoPays,
-                rev_flow: revFlow,
-                rev_retention: revRetention,
-
-                impact_who: impactWho,
-                impact_improvement: impactImprovement,
-                impact_scale: impactScale,
-
-                price: parseFloat(price),
-                document_url: mainDocUrl,
-                additional_doc_1: additionalDocUrls[0] || null,
-                additional_doc_2: additionalDocUrls[1] || null,
-                additional_doc_3: additionalDocUrls[2] || null,
-
-                mvp_type: hasMvp ? mvpType : null,
-                mvp_url: (hasMvp && mvpType === 'digital') ? mvpUrl : null,
-                mvp_image_url: mvpImgUrl,
-                mvp_video_url: mvpVidUrl,
-            };
-
-            // 3. Save
-            if (editId) {
-                const { error } = await updateIdeaListing(editId, listingData);
-                if (error) throw error;
-                setSuccessMessage('Listing updated successfully!');
-                setShowSuccessModal(true);
-            } else {
-                const { data: ideaData, error } = await createIdeaListing({ ...listingData, user_id: user.id });
-                if (error || !ideaData) throw error;
-
-                // Generate random scores between 10-90 for each metric
-                const randomScore = () => Math.floor(Math.random() * (90 - 10 + 1)) + 10;
-
-                await createAIScoring({
-                    idea_id: ideaData.idea_id,
-                    uniqueness: randomScore(),
-                    customer_pain: randomScore(),
-                    scalability: randomScore(),
-                    product_market_fit: randomScore(),
-                    technical_complexity: randomScore(),
-                    capital_intensity: randomScore(),
-                    market_saturation: randomScore(),
-                    business_model_robustness: randomScore(),
-                    market_growth_rate: randomScore(),
-                    social_value: randomScore()
+            if (isEditing && editVentureId) {
+                const { error: updateError } = await updateVenture(editVentureId, {
+                    stage: stage as any,
+                    industry: industry === 'Other' ? otherIndustry : industry,
+                    business_type: businessType,
+                    payer: payer,
+                    problem_details: problemDetails
                 });
-
-                setSuccessMessage('Idea listed successfully!');
-                setShowSuccessModal(true);
+                if (updateError) throw updateError;
+            } else {
+                const { data: venture, error: ventureError } = await createVenture({
+                    user_id: userId,
+                    stage: stage as any,
+                    industry: industry === 'Other' ? otherIndustry : industry,
+                    business_type: businessType,
+                    payer: payer,
+                    problem_details: problemDetails
+                });
+                if (ventureError) throw ventureError;
+                if (venture) targetVentureId = venture.id;
             }
-            // onBack() will be called when modal is closed
+
+            // 2. Create OR Update Idea Listing Record
+            const finalIndustry = industry === 'Other' ? otherIndustry : industry;
+            const generatedTitle = `${finalIndustry} ${businessType} Concept`;
+            const generatedDescription = `A ${stage} stage ${businessType} project in the ${finalIndustry} sector.`;
+
+            if (isEditing && editIdeaId) {
+                const { error: ideaError } = await updateIdeaListing(editIdeaId, {
+                    title: generatedTitle,
+                    one_line_description: generatedDescription,
+                    category: finalIndustry,
+                });
+                if (ideaError) throw ideaError;
+            } else {
+                const { data: idea, error: ideaError } = await createIdeaListing({
+                    user_id: userId,
+                    title: generatedTitle,
+                    one_line_description: generatedDescription,
+                    category: finalIndustry,
+                    price: 0, // Default price
+                    document_url: '',
+                });
+                if (ideaError) throw ideaError;
+            }
+
+            // 3. Trigger Decision Intelligence View
+            // Instead of running pipeline here, we pass data to the component
+            if (targetVentureId) {
+                setEditVentureId(targetVentureId);
+                const pipelineInput = {
+                    stage,
+                    industry: finalIndustry,
+                    business_type: businessType,
+                    payer,
+                    problem_details: problemDetails,
+                    required_problems: requiredProblems
+                };
+                setDebugData({ input: pipelineInput, output: null });
+                setIsSuccess(true); // Re-using isSuccess to trigger the analysis view
+            }
 
         } catch (err: any) {
-            setSubmitError(err.message);
+            console.error(err);
+            alert(err.message || "Failed to submit venture");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleAdditionalDocsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newFiles = Array.from(e.target.files);
-            const currentTotal = existingAdditionalDocs.length + additionalDocuments.length;
-
-            if (currentTotal + newFiles.length > 3) {
-                alert("You can only upload up to 3 additional documents in total.");
-                return;
-            }
-            setAdditionalDocuments(prev => [...prev, ...newFiles]);
-        }
+    const handleBack = () => {
+        setCurrentStep(prev => Math.max(prev - 1, 1));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const removeAdditionalDoc = (index: number) => {
-        setAdditionalDocuments(prev => prev.filter((_, i) => i !== index));
-    };
+    const isStep1Valid = stage && industry && (industry !== 'Other' || otherIndustry) && businessType && payer;
 
-    const removeExistingAdditionalDoc = (index: number) => {
-        setExistingAdditionalDocs(prev => prev.filter((_, i) => i !== index));
-    };
+    // --- Renderers ---
 
-    const handleMainDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setMainDocument(e.target.files[0]);
-            setExistingMainDocUrl(null);
-        }
-    };
-
-    // --- Render ---
-
-    if (isLoadingData) return <div className="min-h-screen text-white flex items-center justify-center">Loading...</div>;
-
-    return (
-        <div className="w-full max-w-3xl mx-auto px-4 pt-24 pb-12 animate-in fade-in duration-500">
-            {/* Top Bar */}
-            <div className="flex items-center justify-between mb-8">
-                <button onClick={onBack} className="text-zinc-500 hover:text-white flex items-center gap-1 text-sm">
-                    <ArrowLeftIcon className="w-4 h-4" /> Cancel
-                </button>
-                <div className="text-xs font-mono text-[#22C55E]">
-                    STEP {currentStep} OF {TOTAL_STEPS}
-                </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-0.5 w-full bg-zinc-900 mb-12">
-                <div className="h-full bg-[#22C55E] transition-all duration-300" style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }} />
-            </div>
-
-            {/* Main Content */}
-            <div className="relative rounded-2xl isolate">
-                {/* Background & Glow - Clipped */}
-                <div className="absolute inset-0 bg-zinc-900/30 border border-zinc-800 rounded-2xl backdrop-blur-sm overflow-hidden pointer-events-none -z-10">
-                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[#22C55E]/5 blur-[80px] rounded-full"></div>
-                </div>
-
-                {/* Content - Visible Overflow */}
-                <div className="relative p-8">
-                    <h1 className="text-2xl font-bold text-white mb-8 flex items-center gap-3 relative z-10">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 text-sm font-mono text-[#22C55E]">
-                            {currentStep}
-                        </span>
-                        {stepTitles[currentStep - 1]}
-                    </h1>
-
-                    {submitError && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">{submitError}</div>}
-
-                    <div className="relative z-10 min-h-[400px]">
-
-                        {/* STEP 1: Idea Info */}
-                        {currentStep === 1 && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Title <span className="text-red-500">*</span></Label>
-                                    <Input value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="Name of your idea" />
-                                </div>
-                                <div>
-                                    <Label>Short Description <span className="text-red-500">*</span></Label>
-                                    <TextArea value={shortDescription} onChange={(e: any) => setShortDescription(e.target.value)} rows={4} placeholder="Elevator pitch description..." />
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div>
-                                        <Label>Primary Category <span className="text-red-500">*</span></Label>
-                                        <Select
-                                            value={primaryCategory}
-                                            onChange={setPrimaryCategory}
-                                            options={industryOptions.filter(c => c !== secondaryCategory)}
-                                            placeholder="Primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label>Secondary Category <span className="text-red-500">*</span></Label>
-                                        <Select
-                                            value={secondaryCategory}
-                                            onChange={setSecondaryCategory}
-                                            options={industryOptions.filter(c => c !== primaryCategory)}
-                                            placeholder="Secondary"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 2: Customer Pain */}
-                        {currentStep === 2 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Who has this problem? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={painWho} onChange={(e: any) => setPainWho(e.target.value)} placeholder="Describe the target audience..." />
-                                </div>
-                                <div>
-                                    <Label>What exactly is the problem and how does it affect them? (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={painProblem} onChange={setPainProblem} placeholder="Pain point..." />
-                                </div>
-                                <div>
-                                    <Label>How often does this problem occur? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={painFrequency} onChange={(e: any) => setPainFrequency(e.target.value)} placeholder="Frequency of the problem..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 3: Current Solutions */}
-                        {currentStep === 3 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>How do people solve this problem today? (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={solutionCurrent} onChange={setSolutionCurrent} placeholder="Current solution..." />
-                                </div>
-                                <div>
-                                    <Label>Why are current solutions insufficient or unsatisfactory? (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={solutionInsufficient} onChange={setSolutionInsufficient} placeholder="Reason insufficient..." />
-                                </div>
-                                <div>
-                                    <Label>What risks or limitations exist with current solutions? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={solutionRisks} onChange={(e: any) => setSolutionRisks(e.target.value)} placeholder="Risks involved..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 4: Execution Steps */}
-                        {currentStep === 4 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Steps to build the first usable version (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={execSteps} onChange={setExecSteps} placeholder="Step..." />
-                                </div>
-                                <div>
-                                    <Label>Skills, tools, or resources required (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={execSkills} onChange={setExecSkills} placeholder="Skill/Tool..." />
-                                </div>
-                                <div>
-                                    <Label>Most difficult or risky parts of execution (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={execRisks} onChange={(e: any) => setExecRisks(e.target.value)} placeholder="Execution risks..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 5: Growth Plan */}
-                        {currentStep === 5 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>How will the first users be acquired? (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={growthAcquisition} onChange={setGrowthAcquisition} placeholder="Acquisition channel..." />
-                                </div>
-                                <div>
-                                    <Label>What drives growth over time? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={growthDrivers} onChange={(e: any) => setGrowthDrivers(e.target.value)} placeholder="Growth drivers..." />
-                                </div>
-                                <div>
-                                    <Label>Possible expansion paths (markets, features, users) (List) <span className="text-red-500">*</span></Label>
-                                    <ContentEditableList items={growthExpansion} onChange={setGrowthExpansion} placeholder="Expansion idea..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 6: Solution Details */}
-                        {currentStep === 6 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>What is the solution? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={solWhat} onChange={(e: any) => setSolWhat(e.target.value)} placeholder="Describe the solution..." />
-                                </div>
-                                <div>
-                                    <Label>How does it work at a high level? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={solHow} onChange={(e: any) => setSolHow(e.target.value)} placeholder="Technical/Functional mechanism..." />
-                                </div>
-                                <div>
-                                    <Label>Why is it better than existing solutions? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={solWhyBetter} onChange={(e: any) => setSolWhyBetter(e.target.value)} placeholder="Competitive advantage..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 7: Revenue Plan */}
-                        {currentStep === 7 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Who pays and why? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={revWhoPays} onChange={(e: any) => setRevWhoPays(e.target.value)} placeholder="Payer profile..." />
-                                </div>
-                                <div>
-                                    <Label>How does money flow into the business? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={revFlow} onChange={(e: any) => setRevFlow(e.target.value)} placeholder="Revenue mechanism..." />
-                                </div>
-                                <div>
-                                    <Label>Why would customers keep paying? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={revRetention} onChange={(e: any) => setRevRetention(e.target.value)} placeholder="Retention factor..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 8: Impact */}
-                        {currentStep === 8 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Who benefits the most from this idea? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={impactWho} onChange={(e: any) => setImpactWho(e.target.value)} placeholder="Primary beneficaries..." />
-                                </div>
-                                <div>
-                                    <Label>What real-world improvement does this create? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={impactImprovement} onChange={(e: any) => setImpactImprovement(e.target.value)} placeholder="Improvements..." />
-                                </div>
-                                <div>
-                                    <Label>What changes if this succeeds at scale? (Paragraph) <span className="text-red-500">*</span></Label>
-                                    <TextArea value={impactScale} onChange={(e: any) => setImpactScale(e.target.value)} placeholder="Long term vision..." />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 9: Finalize */}
-                        {currentStep === 9 && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                                <div>
-                                    <Label>Prospectus / Business Plan (PDF) <span className="text-red-500">*</span></Label>
-                                    {(mainDocument || existingMainDocUrl) ? (
-                                        <div className="flex items-center justify-between bg-zinc-800 p-4 rounded-lg border border-zinc-700">
-                                            {mainDocument ? (
-                                                <span className="text-zinc-200 text-sm truncate">{mainDocument.name}</span>
-                                            ) : (
-                                                <a
-                                                    href={existingMainDocUrl!}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-zinc-200 text-sm truncate hover:text-[#22C55E] hover:underline transition-colors"
-                                                >
-                                                    {existingMainDocUrl ? decodeURIComponent(existingMainDocUrl.split('/').pop() || 'View Document') : 'View Document'}
-                                                </a>
-                                            )}
-                                            <button onClick={() => { setMainDocument(null); setExistingMainDocUrl(null); }} className="text-red-400 hover:text-red-300 transition-colors"><XMarkIcon className="w-5 h-5" /></button>
-                                        </div>
-                                    ) : (
-                                        <input type="file" onChange={handleMainDocUpload} accept=".pdf" className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-green-500 hover:file:bg-zinc-700" />
-                                    )}
-                                </div>
-
-                                {/* Additional Documents Toggle Section */}
-                                <div>
-                                    <Label>Do you have additional documents? <span className="text-red-500">*</span></Label>
-                                    <div className="flex items-center gap-4 mt-2 mb-4">
-                                        <button
-                                            onClick={() => setHasAdditionalDocs(true)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${hasAdditionalDocs === true
-                                                ? 'bg-green-500 text-black border-green-500'
-                                                : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-500'
-                                                }`}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setHasAdditionalDocs(false);
-                                                // Optional: Clear docs if they say no? 
-                                                // For now, let's just hide the input. 
-                                                // Ideally we might want to warn them or clear the array.
-                                            }}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${hasAdditionalDocs === false
-                                                ? 'bg-zinc-200 text-black border-zinc-200'
-                                                : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-500'
-                                                }`}
-                                        >
-                                            No
-                                        </button>
-                                    </div>
-
-                                    {hasAdditionalDocs && (
-                                        <div className="animate-in fade-in slide-in-from-top-2">
-                                            <p className="text-zinc-500 text-xs mb-3">Upload up to 3 documents (Research Paper, Data Collection, etc.)</p>
-
-                                            <div className="space-y-3 mb-3">
-                                                {/* Existing Docs (Edit Mode) */}
-                                                {existingAdditionalDocs.map((url, index) => (
-                                                    <div key={`existing-${index}`} className="flex items-center justify-between bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                                                        <div className="flex items-center gap-2 overflow-hidden">
-                                                            <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-300 font-mono uppercase">Existing</span>
-                                                            <span className="text-zinc-200 text-sm truncate block">Document {index + 1}</span>
-                                                        </div>
-                                                        <button onClick={() => removeExistingAdditionalDoc(index)} className="text-red-400 hover:text-red-300 p-1">
-                                                            <XMarkIcon className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-
-                                                {/* New Docs */}
-                                                {additionalDocuments.map((file, index) => (
-                                                    <div key={`new-${index}`} className="flex items-center justify-between bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                                                        <div className="flex items-center gap-2 overflow-hidden">
-                                                            <span className="px-2 py-0.5 rounded text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 font-mono uppercase">New</span>
-                                                            <span className="text-zinc-200 text-sm truncate block">{file.name}</span>
-                                                        </div>
-                                                        <button onClick={() => removeAdditionalDoc(index)} className="text-red-400 hover:text-red-300 p-1">
-                                                            <XMarkIcon className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Upload Button */}
-                                            {(additionalDocuments.length + existingAdditionalDocs.length) < 3 && (
-                                                <div className="relative">
-                                                    <input
-                                                        type="file"
-                                                        onChange={handleAdditionalDocsUpload}
-                                                        accept=".pdf"
-                                                        disabled={(additionalDocuments.length + existingAdditionalDocs.length) >= 3}
-                                                        className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-green-500 hover:file:bg-zinc-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* MVP Toggle Section */}
-                                <div>
-                                    <Label>Do you have an MVP (Minimum Viable Product)? <span className="text-red-500">*</span></Label>
-                                    <div className="flex items-center gap-4 mt-2 mb-4">
-                                        <button
-                                            onClick={() => setHasMvp(true)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${hasMvp === true
-                                                ? 'bg-green-500 text-black border-green-500'
-                                                : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-500'
-                                                }`}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            onClick={() => setHasMvp(false)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${hasMvp === false
-                                                ? 'bg-zinc-200 text-black border-zinc-200'
-                                                : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-500'
-                                                }`}
-                                        >
-                                            No
-                                        </button>
-                                    </div>
-
-                                    {hasMvp && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 p-4 bg-zinc-900/30 rounded-lg border border-zinc-800">
-
-                                            <div>
-                                                <Label>What type of MVP is it? <span className="text-red-500">*</span></Label>
-                                                <Select
-                                                    value={mvpType}
-                                                    onChange={(val) => setMvpType(val)}
-                                                    options={['digital', 'physical']}
-                                                    placeholder="Select MVP Type"
-                                                />
-                                            </div>
-
-                                            {mvpType === 'digital' && (
-                                                <div>
-                                                    <Label>MVP URL <span className="text-red-500">*</span></Label>
-                                                    <Input
-                                                        value={mvpUrl}
-                                                        onChange={(e: any) => setMvpUrl(e.target.value)}
-                                                        placeholder="https://example.com/demo"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {mvpType === 'physical' && (
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <Label>Product Image <span className="text-red-500">*</span></Label>
-                                                        <div className="flex items-center gap-3">
-                                                            {existingMvpImageUrl && !mvpImage ? (
-                                                                <div className="flex items-center justify-between w-full bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                                        <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-300 font-mono uppercase">Existing</span>
-                                                                        <a href={existingMvpImageUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-200 text-sm truncate hover:underline text-green-400">View Image</a>
-                                                                    </div>
-                                                                    <button onClick={() => setExistingMvpImageUrl(null)} className="text-red-400 hover:text-red-300 p-1"><XMarkIcon className="w-4 h-4" /></button>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <input
-                                                                        type="file"
-                                                                        onChange={(e) => e.target.files && setMvpImage(e.target.files[0])}
-                                                                        accept="image/*"
-                                                                        className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-green-500 hover:file:bg-zinc-700 cursor-pointer"
-                                                                    />
-                                                                    {mvpImage && <CheckCircleIconSolid className="w-6 h-6 text-green-500" />}
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <Label>Product Video <span className="text-red-500">*</span></Label>
-                                                        <div className="flex items-center gap-3">
-                                                            {existingMvpVideoUrl && !mvpVideo ? (
-                                                                <div className="flex items-center justify-between w-full bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                                        <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-300 font-mono uppercase">Existing</span>
-                                                                        <a href={existingMvpVideoUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-200 text-sm truncate hover:underline text-green-400">View Video</a>
-                                                                    </div>
-                                                                    <button onClick={() => setExistingMvpVideoUrl(null)} className="text-red-400 hover:text-red-300 p-1"><XMarkIcon className="w-4 h-4" /></button>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <input
-                                                                        type="file"
-                                                                        onChange={(e) => e.target.files && setMvpVideo(e.target.files[0])}
-                                                                        accept="video/*"
-                                                                        className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-green-500 hover:file:bg-zinc-700 cursor-pointer"
-                                                                    />
-                                                                    {mvpVideo && <CheckCircleIconSolid className="w-6 h-6 text-green-500" />}
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <Label>Asking Price ($) <span className="text-red-500">*</span></Label>
-                                    <Input type="number" value={price} onChange={(e: any) => setPrice(e.target.value)} placeholder="e.g. 5000" />
-                                </div>
-                            </div>
-                        )}
-
+    const renderStepContent = () => {
+        if (currentStep === 1) {
+            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-8"
+                >
+                    <div className="flex items-center gap-4 mb-2">
+                        <div className="w-8 h-8 rounded-full border border-zinc-700 bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-[#22C55E]">
+                            1
+                        </div>
+                        <h2 className="text-xl font-bold text-white tracking-tight">Identification {isEditing && <span className="text-xs text-green-500 ml-2 font-mono">(EDIT MODE)</span>}</h2>
                     </div>
 
-                    {/* Footer Nav */}
-                    <div className="mt-12 pt-6 border-t border-zinc-800 flex justify-between items-center">
-                        <button onClick={handleBack} disabled={currentStep === 1} className={`flex items-center gap-2 text-sm font-medium ${currentStep === 1 ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-white'}`}>
-                            <ChevronLeftIcon className="w-4 h-4" /> Back
-                        </button>
+                    <div className="space-y-8">
+                        <div>
+                            <Label required>What stage is your business in?</Label>
+                            <CustomSelect value={stage} onChange={setStage} options={STAGES} placeholder="Choose stage..." />
+                        </div>
 
-                        {currentStep < TOTAL_STEPS ? (
-                            <button onClick={handleNext} disabled={!isStepValid} className={`flex items-center gap-2 bg-[#22C55E] text-black px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-400 transition-all ${!isStepValid ? 'opacity-50 cursor-not-allowed' : 'shadow-[0_0_20px_rgba(34,197,94,0.3)]'}`}>
-                                Next Step <ChevronRightIcon className="w-4 h-4" />
-                            </button>
-                        ) : (
-                            <button onClick={handleSubmit} disabled={isSubmitting || !isStepValid} className={`flex items-center gap-2 bg-[#22C55E] text-black px-8 py-2.5 rounded-lg text-sm font-bold hover:bg-green-400 transition-all ${(!isStepValid || isSubmitting) ? 'opacity-50 cursor-not-allowed' : 'shadow-[0_0_20px_rgba(34,197,94,0.3)]'}`}>
-                                {isSubmitting ? 'Publishing...' : 'Publish Listing'} <CheckCircleIconSolid className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+                        <div>
+                            <Label required>Which industry best fits your business?</Label>
+                            <CustomSelect value={industry} onChange={setIndustry} options={INDUSTRIES} placeholder="Choose industry..." />
+                            <AnimatePresence>
+                                {industry === 'Other' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="mt-4"
+                                    >
+                                        <input
+                                            type="text"
+                                            value={otherIndustry}
+                                            onChange={(e) => setOtherIndustry(e.target.value)}
+                                            placeholder="Please specify your industry"
+                                            className="w-full bg-black/40 border border-zinc-800 rounded-xl px-6 py-4 text-sm text-white focus:border-[#22C55E]/50 outline-none transition-all placeholder:text-zinc-600"
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
 
-            {/* Success Modal */}
-            {showSuccessModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 max-w-sm w-full relative zoom-in-95 animate-in duration-300 shadow-2xl">
-                        <div className="flex flex-col items-center text-center gap-6">
-                            {/* Success Icon */}
-                            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-green-500">
-                                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-                                </svg>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                            <div>
+                                <Label required>What are you selling?</Label>
+                                <CustomSelect value={businessType} onChange={setBusinessType} options={BUSINESS_TYPES} placeholder="SaaS, Product..." />
                             </div>
-
-                            {/* Text */}
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-bold text-white">Success!</h3>
-                                <p className="text-zinc-400 text-sm">{successMessage}</p>
+                            <div>
+                                <Label required>Who pays you?</Label>
+                                <CustomSelect value={payer} onChange={setPayer} options={PAYERS} placeholder="Consumers..." />
                             </div>
-
-                            {/* Button */}
-                            <button
-                                onClick={() => {
-                                    setShowSuccessModal(false);
-                                    onBack();
-                                }}
-                                className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl transition-all"
-                            >
-                                Continue
-                            </button>
                         </div>
                     </div>
+                </motion.div>
+            );
+        }
+
+        if (currentStep === 2) {
+            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-8"
+                >
+                    <div className="flex items-center gap-4 mb-2">
+                        <div className="w-8 h-8 rounded-full border border-zinc-700 bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-[#22C55E]">
+                            2
+                        </div>
+                        <h2 className="text-xl font-bold text-white tracking-tight">Analysis Scope</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {problemList.map((prob) => (
+                            <ToggleOption
+                                key={prob}
+                                label={prob}
+                                required={!!requiredProblems[prob]}
+                                onChange={(val) => handleToggleProblem(prob, val)}
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+            );
+        }
+
+        const detailStepIndex = currentStep - 3;
+        const currentProblem = selectedProblemSteps[detailStepIndex];
+
+        if (currentProblem) {
+            return (
+                <motion.div
+                    key={currentProblem}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-8"
+                >
+                    <div className="flex items-center gap-4 mb-2">
+                        <div className="w-8 h-8 rounded-full border border-zinc-700 bg-zinc-800 flex items-center justify-center text-xs font-mono font-bold text-[#22C55E]">
+                            {currentStep}
+                        </div>
+                        <h2 className="text-xl font-bold text-white tracking-tight">{currentProblem}</h2>
+                    </div>
+
+                    <section>
+                        <Label required>What problem are you facing in this area?</Label>
+                        <AutoResizeTextarea
+                            value={problemDetails[currentProblem] || ''}
+                            onChange={(e) => setProblemDetails(prev => ({ ...prev, [currentProblem]: e.target.value }))}
+                            placeholder="Elaborate on the challenges, roadblocks, or needs..."
+                            className="w-full min-h-[160px] bg-black/40 border border-zinc-800 rounded-2xl p-6 text-base text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-[#22C55E]/30 leading-relaxed"
+                        />
+                    </section>
+                </motion.div>
+            );
+        }
+
+        return null;
+    };
+
+    if (isSubmitting) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center relative bg-zinc-950 px-4">
+                <div className="text-white">Creating Venture Record...</div>
+            </div>
+        );
+    }
+
+    if (isSuccess && editVentureId && debugData) {
+        return (
+            <div className="min-h-screen bg-zinc-950 p-6 md:p-10 text-white">
+                <div className="max-w-[1400px] mx-auto">
+                    <button
+                        onClick={onBack}
+                        className="mb-8 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-sm font-bold transition-all text-white flex items-center gap-2"
+                    >
+                        <ArrowLeftIcon className="w-4 h-4" /> Back to Dashboard
+                    </button>
+
+                    <ConfigProvider
+                        theme={{
+                            algorithm: theme.darkAlgorithm,
+                            token: {
+                                colorPrimary: '#22C55E',
+                                colorBgBase: '#111111',
+                                borderRadius: 8,
+                            },
+                        }}
+                    >
+                        <DecisionIntelligence
+                            ventureId={editVentureId}
+                            ventureData={debugData.input}
+                            onComplete={(result) => console.log("Analysis Complete", result)}
+                        />
+                    </ConfigProvider>
                 </div>
-            )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full lg:w-[85%] xl:w-[75%] mx-auto px-4 sm:px-8 transition-all duration-500">
+            {/* Header Header */}
+            <div className="flex items-center justify-between mb-8 px-2 sm:px-4">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-sm font-medium"
+                >
+                    <ArrowLeftIcon className="w-4 h-4" />
+                    Cancel
+                </button>
+
+                <div className="text-[#22C55E] font-mono text-xs font-bold tracking-widest">
+                    STEP {currentStep} OF {totalSteps}
+                </div>
+            </div>
+
+            {/* Card Container */}
+            <div className="bg-[#111111]/60 border border-zinc-800/50 rounded-2xl relative overflow-hidden backdrop-blur-xl">
+                {/* Progress Bar */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-zinc-800">
+                    <motion.div
+                        className="h-full bg-[#22C55E]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                    />
+                </div>
+
+                <div className="p-8 sm:p-12 md:p-20">
+                    <AnimatePresence mode="wait">
+                        <div key={currentStep} className="w-full">
+                            {renderStepContent()}
+                        </div>
+                    </AnimatePresence>
+
+                    {/* Card Footer */}
+                    <div className="mt-16 flex items-center justify-between pt-8 border-t border-zinc-800/50">
+                        <button
+                            onClick={handleBack}
+                            disabled={currentStep === 1}
+                            className={`
+                                text-sm font-medium transition-colors
+                                ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'text-zinc-500 hover:text-white'}
+                            `}
+                        >
+                            Back
+                        </button>
+
+                        <button
+                            onClick={handleNext}
+                            disabled={currentStep === 1 && !isStep1Valid}
+                            className={`
+                                flex items-center gap-2 px-10 py-4 rounded-xl font-bold text-sm transition-all
+                                ${currentStep === 1 && !isStep1Valid
+                                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                                    : 'bg-[#22C55E] text-black hover:bg-[#1eb054] shadow-[0_0_30px_rgba(34,197,94,0.15)]'
+                                }
+                            `}
+                        >
+                            {currentStep === totalSteps ? (isEditing ? 'Update & Analyze' : 'Finish & Analyze') : 'Next Step'}
+                            <ChevronRightIcon className="w-4 h-4 stroke-[3]" />
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

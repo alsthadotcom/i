@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import type {
+import {
     UserInfo,
     NewUserInfo,
     IdeaListing,
@@ -12,8 +12,32 @@ import type {
     AIScoring,
     NewAIScoring,
     MarketplaceView,
-    IdeaDetailView
+    IdeaDetailView,
+    Venture,
+    NewVenture
 } from '../types/database';
+
+// ============================================
+// HELPERS
+// ============================================
+
+export function getAnonymousId(): string {
+    let anonId = localStorage.getItem('ida_anonymous_id');
+    if (!anonId) {
+        // Generate a valid UUID v4
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            anonId = crypto.randomUUID();
+        } else {
+            // Fallback for older environments
+            anonId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        localStorage.setItem('ida_anonymous_id', anonId);
+    }
+    return anonId;
+}
 
 // ============================================
 // USER INFO OPERATIONS
@@ -252,42 +276,69 @@ export async function deleteIdeaListing(ideaId: string): Promise<{ error: any }>
 }
 
 // ============================================
-// AI SCORING OPERATIONS
+// VENTURE OPERATIONS
 // ============================================
 
-export async function createAIScoring(scoringData: NewAIScoring): Promise<{ data: AIScoring | null; error: any }> {
+export async function createVenture(ventureData: NewVenture): Promise<{ data: Venture | null; error: any }> {
+    // If user_id is missing (anonymous), use the anonymous ID
+    const finalData = {
+        ...ventureData,
+        user_id: ventureData.user_id || getAnonymousId()
+    };
+
     const { data, error } = await supabase
-        .from('ai_scoring')
-        .insert([scoringData])
+        .from('ventures')
+        .insert([finalData])
         .select()
         .single();
 
     return { data, error };
 }
 
-export async function getAIScoringByIdeaId(ideaId: string): Promise<{ data: AIScoring | null; error: any }> {
+export async function getVenturesByUser(userId: string): Promise<{ data: Venture[] | null; error: any }> {
     const { data, error } = await supabase
-        .from('ai_scoring')
+        .from('ventures')
         .select('*')
-        .eq('idea_id', ideaId)
-        .single();
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
     return { data, error };
 }
 
-export async function updateAIScoring(
-    ideaId: string,
-    updates: Partial<NewAIScoring>
-): Promise<{ data: AIScoring | null; error: any }> {
-    const { data, error } = await supabase
-        .from('ai_scoring')
-        .update(updates)
-        .eq('idea_id', ideaId)
-        .select()
-        .single();
+// ============================================
+// VENTURE ANALYSIS OPERATIONS
+// ============================================
 
-    return { data, error };
+export async function saveVentureAnalysis(ventureId: string, analysisData: any): Promise<{ data: any | null; error: any }> {
+    // Check if analysis already exists for this venture
+    const { data: existing } = await supabase
+        .from('venture_analysis')
+        .select('id')
+        .eq('venture_id', ventureId)
+        .maybeSingle();
+
+    let result;
+    if (existing) {
+        // Update
+        result = await supabase
+            .from('venture_analysis')
+            .update({ roadmap_data: analysisData, updated_at: new Date().toISOString() })
+            .eq('venture_id', ventureId)
+            .select()
+            .single();
+    } else {
+        // Insert
+        result = await supabase
+            .from('venture_analysis')
+            .insert([{ venture_id: ventureId, roadmap_data: analysisData }])
+            .select()
+            .single();
+    }
+
+    return { data: result.data, error: result.error };
 }
+
+// AI SCORING OPERATIONS REMOVED
 
 // ============================================
 // MARKETPLACE VIEW OPERATIONS
@@ -302,7 +353,6 @@ export interface MarketplaceFilters {
     maxPrice?: number;
     hasMvp?: boolean;
     hasDocs?: boolean;
-    minScore?: number;
     sort?: {
         field: 'price' | 'overall_score' | 'created_at';
         direction: 'asc' | 'desc';
@@ -335,10 +385,8 @@ export async function getMarketplaceItems(
     if (filters.minPrice !== undefined) query = query.gte('price', filters.minPrice);
     if (filters.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
 
-    // AI Score
-    if (filters.minScore !== undefined) {
-        query = query.gte('overall_score', filters.minScore);
-    }
+    // AI Score (Removed)
+
 
     // MVP
     if (filters.hasMvp) {
@@ -525,20 +573,9 @@ export async function deleteDocument(filePath: string): Promise<{ error: any }> 
 
 export async function getUserListings(userId: string): Promise<{ data: MarketplaceView[] | null; error: any }> {
     // Query idea_listing table directly to ensure we get all user items
-    // We join with ai_scoring to get the score
     const { data: listings, error } = await supabase
         .from('idea_listing')
-        .select(`
-            *,
-            ai_scoring (
-                overall_score,
-                uniqueness,
-                product_market_fit,
-                business_model_robustness,
-                market_saturation,
-                capital_intensity
-            )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -548,18 +585,17 @@ export async function getUserListings(userId: string): Promise<{ data: Marketpla
 
     // Map to MarketplaceView shape
     const marketplaceItems: MarketplaceView[] = (listings || []).map((item: any) => {
-        const scoreData = item.ai_scoring?.[0] || item.ai_scoring; // Handle array or object return
         return {
             marketplace_id: item.idea_id,
             idea_id: item.idea_id,
-            ai_score_id: scoreData?.ai_score_id || 'pending',
+            ai_score_id: 'pending',
             title: item.title,
             description: item.one_line_description || '',
-            uniqueness: scoreData?.uniqueness || 0,
-            viability: scoreData?.product_market_fit || 0, // Map PMF to legacy viability
-            profitability: 'Analysis Completed', // Placeholder as per view definition
-            market_saturation: scoreData?.market_saturation || 0,
-            capital_intensity: scoreData?.capital_intensity || 0,
+            uniqueness: 0,
+            viability: 0,
+            profitability: 'Pending',
+            market_saturation: 0,
+            capital_intensity: 0,
             category: item.category,
             secondary_category: item.secondary_category,
             mvp: false,
@@ -567,7 +603,7 @@ export async function getUserListings(userId: string): Promise<{ data: Marketpla
             price: item.price,
             username: '',
             created_at: item.created_at,
-            overall_score: scoreData?.overall_score || 0
+            overall_score: 0
         };
     });
 
@@ -754,4 +790,30 @@ export async function trackShare(ideaId: string, userId?: string): Promise<void>
         }
     ]);
     if (error) console.error("Error tracking share:", error);
+}
+
+export async function getVentureByUserId(userId: string): Promise<{ data: Venture | null; error: any }> {
+    const { data, error } = await supabase
+        .from('ventures')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+    return { data, error };
+}
+
+export async function updateVenture(ventureId: string, updates: Partial<Venture>): Promise<{ data: Venture | null; error: any }> {
+    const { data, error } = await supabase
+        .from('ventures')
+        .update(updates)
+        .eq('id', ventureId)
+        .select()
+        .maybeSingle(); // Use maybeSingle
+
+    if (!data) {
+        return { data: null, error: new Error('Venture not found or permission denied') };
+    }
+
+    return { data, error };
 }

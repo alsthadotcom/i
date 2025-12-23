@@ -7,6 +7,7 @@ import { ArrowTrendingUpIcon, StarIcon } from '@heroicons/react/24/solid';
 import { getTopRatedMarketplaceItems } from '../services/database';
 import type { MarketplaceView } from '../types/database';
 
+
 const MiniRadial: React.FC<{ value: number }> = ({ value }) => {
     const radius = 16; // Internal SVG radius
     const circumference = 2 * Math.PI * radius;
@@ -140,7 +141,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({ limit = 4, showHeade
                         {/* Header: Username & Rating */}
                         <div className="flex justify-between items-start mb-3">
                             <span className="text-[10px] text-zinc-300 border-zinc-700 border px-2 py-1 rounded font-mono">
-                                @{item.username.replace(/^@/, '').toLowerCase()}
+                                @{(item.username || 'anonymous').replace(/^@/, '').toLowerCase()}
                             </span>
                             <div className="flex items-center space-x-1 text-zinc-400">
                                 <StarIcon className="w-3 h-3" />
