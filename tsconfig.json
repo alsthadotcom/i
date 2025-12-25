@@ -33,6 +33,7 @@
     "components",
     "services",
     "types",
+    "hooks",
     "*.tsx",
     "*.ts"
   ]
