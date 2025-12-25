@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlassIcon, FunnelIcon, AdjustmentsHorizontalIcon, PlusIcon, XMarkIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, AdjustmentsHorizontalIcon, PlusIcon, XMarkIcon, ChevronDownIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { getMarketplaceItems, MarketplaceFilters } from '../services/database';
 import type { MarketplaceView } from '../types/database';
 import { CategoryDropdown } from './CategoryDropdown';
@@ -370,6 +370,19 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ user, onItemClick, onS
                                     <span className="px-2 py-1 bg-green-500/10 text-green-400 text-[10px] font-bold uppercase rounded border border-green-500/20">
                                         MVP
                                     </span>
+                                )}
+                                {item.document_url && (
+                                    <a
+                                        href={item.document_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="ml-2 px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase rounded border border-blue-500/20 flex items-center gap-1 hover:bg-blue-500/20 transition-colors"
+                                        title="Download Analysis JSON"
+                                    >
+                                        <ArrowDownTrayIcon className="w-3 h-3" />
+                                        JSON
+                                    </a>
                                 )}
                             </div>
                         </div>

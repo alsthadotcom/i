@@ -4,14 +4,15 @@
  */
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ArrowLeftIcon, ChevronRightIcon, CheckIcon, ArrowDownTrayIcon, ExclamationTriangleIcon, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { AutoResizeTextarea } from './AutoResizeTextarea';
 import { createVenture, getAnonymousId, createIdeaListing, getIdeaListingById, getVentureByUserId, updateVenture, updateIdeaListing, saveVentureAnalysis } from '../services/database';
 import { supabase } from '../services/supabase';
-import { runFullPipeline, ValidationLog, ValidationResult } from '../services/validationChain';
-import { TargetedModel, toonDecodeFromStorage } from '../services/puter';
-import DecisionIntelligence from './DecisionIntelligence';
-import { ConfigProvider, theme } from 'antd';
+// import { runFullPipeline, ValidationLog, ValidationResult } from '../services/validationChain'; // File missing
+import { TargetedModel, toonDecodeFromStorage, analyzeIdea } from '../services/puter';
+import { generateHtmlReport } from '../services/reportGenerator';
+// import DecisionIntelligence from './DecisionIntelligence';
+// import { ConfigProvider, theme } from 'antd';
 
 // --- Constants ---
 
@@ -56,6 +57,14 @@ const PROBLEMS_EXECUTED = [
 
 interface SellIdeaProps {
     onBack: () => void;
+    initialIdeaId?: string | null;
+}
+
+interface ValidationLog {
+    step: number;
+    model: string;
+    status: 'pending' | 'processing' | 'completed';
+    message: string;
 }
 
 // --- Components ---
@@ -238,7 +247,7 @@ const PipelineStep = ({ model, role, logs, targetStep }: { model: string, role: 
     );
 };
 
-export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
+export const SellIdea: React.FC<SellIdeaProps> = ({ onBack, initialIdeaId }) => {
     // --- State ---
     const [currentStep, setCurrentStep] = useState(1);
     const [isEditing, setIsEditing] = useState(false);
@@ -246,6 +255,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     const [editVentureId, setEditVentureId] = useState<string | null>(null);
 
     // Step 1: Identification
+    const [coreIdea, setCoreIdea] = useState("");
     const [stage, setStage] = useState("");
     const [industry, setIndustry] = useState("");
     const [otherIndustry, setOtherIndustry] = useState("");
@@ -264,11 +274,49 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
     const [pipelineLogs, setPipelineLogs] = useState<ValidationLog[]>([]);
     const [finalAnalysis, setFinalAnalysis] = useState<any>(null);
 
+    // New states for analysis
+    const [loading, setLoading] = useState(false);
+    const [analysisProgress, setAnalysisProgress] = useState("Initializing...");
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const [isAnalysisReady, setIsAnalysisReady] = useState(false);
+    const [hasDownloaded, setHasDownloaded] = useState(false);
+    const [showVideo, setShowVideo] = useState(false);
+
+    // Prevent accidental tab close
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isAnalysisReady && !hasDownloaded) {
+                e.preventDefault();
+                e.returnValue = ''; // Trigger browser alert
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isAnalysisReady, hasDownloaded]);
+
+    // Auto-play video if stuck on roadmap for >5 seconds
+    const isRoadmapStage = analysisProgress.toLowerCase().includes('roadmap');
+
+    useEffect(() => {
+        if (!loading || !isRoadmapStage) {
+            setShowVideo(false);
+            return;
+        }
+
+        // Timer now only resets if we leave roadmap stage or stop loading
+        const timer = setTimeout(() => {
+            setShowVideo(true);
+        }, 5000); // 5 seconds
+
+        return () => clearTimeout(timer);
+    }, [isRoadmapStage, loading]);
+
+
     // --- Effects ---
     useEffect(() => {
         const loadDataForEdit = async () => {
             const params = new URLSearchParams(window.location.search);
-            const id = params.get('id');
+            const id = initialIdeaId || params.get('id');
             if (!id) return;
 
             setEditIdeaId(id);
@@ -278,6 +326,11 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 // 1. Fetch the listing to ensure ownership/existence
                 const { data: idea, error: ideaError } = await getIdeaListingById(id);
                 if (ideaError || !idea) throw new Error("Listing not found");
+
+                // Pre-fill core idea from existing listing description
+                if (idea.one_line_description) {
+                    setCoreIdea(idea.one_line_description);
+                }
 
                 // 2. Fetch the corresponding venture (heuristic: latest for this user)
                 // In a stricter schema, we'd use a foreign key.
@@ -346,6 +399,97 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const downloadFile = (filename: string, content: string) => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const formatAnalysisToText = (data: any): string => {
+        if (!data) return "";
+
+        let text = "================================================================\n";
+        text += "FINAL STRATEGIC ANALYSIS REPORT\n";
+        text += "================================================================\n\n";
+
+        // 1. Competitors
+        text += "1. TOP 5 COMPETITORS\n";
+        text += "--------------------\n";
+        if (Array.isArray(data.competitors)) {
+            data.competitors.forEach((c: string) => text += `• ${c}\n`);
+        }
+        text += "\n";
+
+        // 2. Solutions
+        text += "2. KEY STRATEGIC SOLUTIONS\n";
+        text += "--------------------------\n";
+        if (Array.isArray(data.solutions)) {
+            data.solutions.forEach((s: string) => text += `• ${s}\n`);
+        }
+        text += "\n";
+
+        // 3. Case Studies
+        text += "3. RELEVANT CASE STUDIES\n";
+        text += "------------------------\n";
+        if (Array.isArray(data.case_studies)) {
+            data.case_studies.forEach((cs: any) => {
+                text += `• Company: ${cs.company}\n`;
+                text += `  Outcome: ${cs.outcome}\n\n`;
+            });
+        }
+        text += "\n";
+
+        // 4. Sources
+        text += "4. VERIFIED SOURCES\n";
+        text += "-------------------\n";
+        if (Array.isArray(data.sources)) {
+            data.sources.forEach((s: string, i: number) => text += `${i + 1}. ${s}\n`);
+        }
+        text += "\n";
+
+        // 5. Roadmap
+        text += "5. EXECUTION ROADMAP\n";
+        text += "--------------------\n";
+        text += `${data.roadmap || "No roadmap provided."}\n\n`;
+
+        text += "================================================================\n";
+        text += "Generated by IDA Decision Intelligence\n";
+
+        return text;
+    };
+
+    const downloadResources = (input: any, output: any) => {
+        const date = new Date().toISOString().split('T')[0];
+
+        // 1. Download Input
+        if (input) {
+            downloadFile(`idea_input_${date}.txt`, JSON.stringify(input, null, 2));
+        }
+
+        // 2. Download Output (HTML)
+        if (output) {
+            const htmlContent = generateHtmlReport(output);
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `idea_analysis_${date}.html`;
+
+            setTimeout(() => {
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 1500); // 1.5s delay
+        }
+    };
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
@@ -381,12 +525,15 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             // 2. Create OR Update Idea Listing Record
             const finalIndustry = industry === 'Other' ? otherIndustry : industry;
             const generatedTitle = `${finalIndustry} ${businessType} Concept`;
-            const generatedDescription = `A ${stage} stage ${businessType} project in the ${finalIndustry} sector.`;
+            // Use user's core idea description if provided, otherwise generate default
+            const finalDescription = coreIdea && coreIdea.trim().length > 0
+                ? coreIdea
+                : `A ${stage} stage ${businessType} project in the ${finalIndustry} sector.`;
 
             if (isEditing && editIdeaId) {
                 const { error: ideaError } = await updateIdeaListing(editIdeaId, {
                     title: generatedTitle,
-                    one_line_description: generatedDescription,
+                    one_line_description: finalDescription,
                     category: finalIndustry,
                 });
                 if (ideaError) throw ideaError;
@@ -394,7 +541,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                 const { data: idea, error: ideaError } = await createIdeaListing({
                     user_id: userId,
                     title: generatedTitle,
-                    one_line_description: generatedDescription,
+                    one_line_description: finalDescription,
                     category: finalIndustry,
                     price: 0, // Default price
                     document_url: '',
@@ -407,6 +554,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
             if (targetVentureId) {
                 setEditVentureId(targetVentureId);
                 const pipelineInput = {
+                    core_idea: coreIdea, // Pass the core description to AI
                     stage,
                     industry: finalIndustry,
                     business_type: businessType,
@@ -414,15 +562,121 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                     problem_details: problemDetails,
                     required_problems: requiredProblems
                 };
-                setDebugData({ input: pipelineInput, output: null });
-                setIsSuccess(true); // Re-using isSuccess to trigger the analysis view
+
+                // End submission phase, start analysis phase
+                setIsSubmitting(false);
+                setIsSuccess(true);
+                setLoading(true); // Start Analysis Loading
+                setAnalysisProgress("Initializing AI Agents...");
+
+                try {
+                    // NEW: Run Analysis with Progress Tracking
+                    const result = await analyzeIdea(
+                        pipelineInput,
+                        // @ts-ignore
+                        pipelineInput.required_problems || [],
+                        (stage) => setAnalysisProgress(stage)
+                    );
+
+                    setAnalysisResult({
+                        input: pipelineInput,
+                        output: result
+                    });
+                    setIsAnalysisReady(true);
+                    setLoading(false);
+
+                    // AUTOMATIC UPLOAD: Save JSON to Storage & DB
+                    try {
+                        const jsonString = JSON.stringify({ input: pipelineInput, output: result }, null, 2);
+                        const blob = new Blob([jsonString], { type: 'application/json' });
+                        const file = new File([blob], `analysis_${targetVentureId}.json`, { type: 'application/json' });
+
+                        // Upload
+                        const { data: uploadData, error: uploadError } = await import('../services/database').then(m => m.uploadDocument(file, userId, 'documents'));
+
+                        if (uploadData && editIdeaId) {
+                            // Update Listing
+                            await updateIdeaListing(editIdeaId, { document_url: uploadData.url });
+                            console.log("Analysis saved to DB:", uploadData.url);
+                        }
+                    } catch (uploadErr) {
+                        console.error("Auto-save failed:", uploadErr);
+                    }
+
+                } catch (error) {
+                    console.error("Analysis Failed:", error);
+                    setAnalysisProgress("Analysis failed. Please try again.");
+                    setLoading(false);
+
+
+                }
             }
+
 
         } catch (err: any) {
             console.error(err);
             alert(err.message || "Failed to submit venture");
-        } finally {
             setIsSubmitting(false);
+        }
+    };
+
+
+
+    const handleDownloadReport = () => {
+        if (!analysisResult) return;
+
+        // Mark as downloaded so exit warning is disabled
+        setHasDownloaded(true);
+
+        // Download Input
+        const date = new Date().toISOString().split('T')[0];
+        try {
+            const inputBlob = new Blob([JSON.stringify(analysisResult.input, null, 2)], { type: 'text/plain' });
+            const inputUrl = URL.createObjectURL(inputBlob);
+            const a = document.createElement('a');
+            a.href = inputUrl;
+            a.download = `idea_input_${date}.txt`;
+            a.click();
+            URL.revokeObjectURL(inputUrl);
+
+            // Download HTML Report
+            setTimeout(() => {
+                const htmlContent = generateHtmlReport(analysisResult.output);
+                const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+                const htmlUrl = URL.createObjectURL(htmlBlob);
+                const b = document.createElement('a');
+                b.href = htmlUrl;
+                b.download = `idea_analysis_${date}.html`;
+                b.click();
+                URL.revokeObjectURL(htmlUrl);
+            }, 1000);
+
+            // Download PDF Report
+            setTimeout(async () => {
+                try {
+                    const htmlContent = generateHtmlReport(analysisResult.output);
+                    const response = await fetch('/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ html: htmlContent }),
+                    });
+
+                    if (!response.ok) throw new Error('PDF generation failed');
+
+                    const pdfBlob = await response.blob();
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const c = document.createElement('a');
+                    c.href = pdfUrl;
+                    c.download = `idea_analysis_${date}.pdf`;
+                    c.click();
+                    URL.revokeObjectURL(pdfUrl);
+                } catch (pdfErr) {
+                    console.error("PDF download failed", pdfErr);
+                }
+            }, 2500);
+        } catch (e) {
+            console.error("Download failed", e);
+            alert("Download failed. Please check console.");
         }
     };
 
@@ -431,7 +685,7 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const isStep1Valid = stage && industry && (industry !== 'Other' || otherIndustry) && businessType && payer;
+    const isStep1Valid = coreIdea && stage && industry && (industry !== 'Other' || otherIndustry) && businessType && payer;
 
     // --- Renderers ---
 
@@ -451,6 +705,16 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
                     </div>
 
                     <div className="space-y-8">
+                        <div>
+                            <Label required>Describe your core idea</Label>
+                            <AutoResizeTextarea
+                                value={coreIdea}
+                                onChange={(e) => setCoreIdea(e.target.value)}
+                                placeholder="e.g., A platform for sharing surplus food with neighbors..."
+                                className="w-full min-h-[100px] bg-black/40 border border-zinc-800 rounded-2xl p-6 text-base text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-[#22C55E]/30 leading-relaxed"
+                            />
+                        </div>
+
                         <div>
                             <Label required>What stage is your business in?</Label>
                             <CustomSelect value={stage} onChange={setStage} options={STAGES} placeholder="Choose stage..." />
@@ -564,34 +828,70 @@ export const SellIdea: React.FC<SellIdeaProps> = ({ onBack }) => {
         );
     }
 
-    if (isSuccess && editVentureId && debugData) {
+    if (isSuccess) {
         return (
-            <div className="min-h-screen bg-zinc-950 p-6 md:p-10 text-white">
-                <div className="max-w-[1400px] mx-auto">
-                    <button
-                        onClick={onBack}
-                        className="mb-8 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-sm font-bold transition-all text-white flex items-center gap-2"
-                    >
-                        <ArrowLeftIcon className="w-4 h-4" /> Back to Dashboard
-                    </button>
+            <div className="min-h-screen flex flex-col items-center justify-center relative bg-zinc-950 px-4 text-center">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-zinc-950 to-zinc-950 pointer-events-none" />
 
-                    <ConfigProvider
-                        theme={{
-                            algorithm: theme.darkAlgorithm,
-                            token: {
-                                colorPrimary: '#22C55E',
-                                colorBgBase: '#111111',
-                                borderRadius: 8,
-                            },
-                        }}
-                    >
-                        <DecisionIntelligence
-                            ventureId={editVentureId}
-                            ventureData={debugData.input}
-                            onComplete={(result) => console.log("Analysis Complete", result)}
-                        />
-                    </ConfigProvider>
-                </div>
+                {loading ? (
+                    // LOADING STATE
+                    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-700 relative z-10">
+                        <div className="relative w-24 h-24 mb-8">
+                            <div className="absolute inset-0 border-t-2 border-[#22C55E] rounded-full animate-spin"></div>
+                            <div className="absolute inset-2 border-r-2 border-blue-500 rounded-full animate-spin reverse"></div>
+                            <div className="absolute inset-4 border-b-2 border-purple-500 rounded-full animate-spin"></div>
+                        </div>
+                        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#22C55E] via-blue-500 to-purple-500 mb-4">
+                            Analyzing Your Vision
+                        </h3>
+                        <div className="text-zinc-400 text-lg animate-pulse font-mono bg-zinc-900/50 px-4 py-2 rounded-lg border border-zinc-800">
+                            {analysisProgress}
+                        </div>
+
+                        {showVideo && (
+                            <div className="mt-12 animate-in fade-in zoom-in duration-500">
+                                <div className="text-zinc-500 text-sm mb-4">While you wait, enjoy this tune...</div>
+                                <iframe
+                                    width="560"
+                                    height="315"
+                                    src="https://www.youtube.com/embed/Ikuy_izf_Bo?autoplay=1&si=lZJ36enXIPimPRjQ"
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    className="rounded-xl border-2 border-zinc-800 shadow-[0_0_60px_rgba(34,211,238,0.2)]"
+                                ></iframe>
+                            </div>
+                        )}
+                    </div>
+                ) : isAnalysisReady ? (
+                    // DOWNLOAD STATE
+                    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in duration-500 relative z-10 max-w-lg">
+                        <div className="w-24 h-24 bg-[#22C55E]/20 rounded-full flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(34,197,94,0.2)]">
+                            <CheckIcon className="w-12 h-12 text-[#22C55E]" />
+                        </div>
+                        <h2 className="text-4xl font-bold text-white mb-6">Analysis Complete!</h2>
+                        <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
+                            Your strategic report is ready. It includes market research, competitor analysis, and an execution roadmap.
+                        </p>
+
+                        <button
+                            onClick={handleDownloadReport}
+                            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-[#22C55E] text-black text-xl font-bold rounded-2xl hover:bg-[#1eb054] shadow-[0_0_30px_rgba(34,197,94,0.3)] transition-all transform hover:scale-[1.02]"
+                        >
+                            <ArrowDownTrayIcon className="w-6 h-6 stroke-[2.5]" />
+                            Download Intelligence Report
+                        </button>
+
+                        <div className="mt-8 flex items-center gap-2 text-yellow-500/80 bg-yellow-500/10 px-4 py-2 rounded-lg border border-yellow-500/20">
+                            <ExclamationTriangleIcon className="w-4 h-4" />
+                            <span className="text-sm font-medium">Please download before closing this tab.</span>
+                        </div>
+                    </div>
+                ) : (
+                    // FALLBACK SUCCESS (Should generally not reach here if analysis runs)
+                    <div className="text-white">Analysis Data Missing.</div>
+                )}
             </div>
         );
     }

@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Strategic Analysis Report - Comprehensive Market Intelligence & Execution Strategy for Fintech Marketplace">
+    <title>Strategic Analysis Report | Market Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- AntV G2 -->
+    <script src="https://unpkg.com/@antv/g2@5/dist/g2.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0c1117;
+            --bg-secondary: #131a23;
+            --bg-card: #1a232e;
+            --bg-card-hover: #212d3b;
+            --text-primary: #f0f4f8;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #22d3ee;
+            --accent-glow: rgba(34, 211, 238, 0.15);
+            --accent-secondary: #06b6d4;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.15);
+            --info: #3b82f6;
+            --info-glow: rgba(59, 130, 246, 0.15);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(34, 211, 238, 0.3);
+            --gradient-radial: radial-gradient(ellipse at 50% 0%, rgba(34, 211, 238, 0.08) 0%, transparent 50%);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 60px rgba(34, 211, 238, 0.1);
+            --radius: 16px;
+            --radius-sm: 8px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Grain texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.02;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: 9999;
+        }
+
+        /* Gradient orbs background */
+        .bg-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(6, 182, 212, 0.08));
+            top: -200px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.06));
+            bottom: 20%;
+            left: -150px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+            top: 60%;
+            right: -100px;
+            animation-delay: -10s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -40px) scale(1.05); }
+            50% { transform: translate(-20px, 20px) scale(0.95); }
+            75% { transform: translate(40px, 30px) scale(1.02); }
+        }
+
+        /* Grid lines background */
+        .grid-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+        }
+
+        /* Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 24px;
+            background: rgba(12, 17, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            transform: translateY(-100%);
+            animation: navSlideIn 0.6s 0.5s forwards;
+        }
+
+        @keyframes navSlideIn {
+            to { transform: translateY(0); }
+        }
+
+        nav .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        /* Header / Hero */
+        header {
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent-glow);
+            border: 1px solid var(--border-accent);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.2s forwards;
+        }
+
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.3s forwards;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--success) 50%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.4s forwards;
+        }
+
+        @keyframes fadeUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(24px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin: 60px 0;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.5s forwards;
+        }
+
+        .stat {
+            background: var(--bg-secondary);
+            padding: 32px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Infographics Section */
+        .infographics-section {
+            margin-bottom: 80px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            transition: var(--transition);
+        }
+
+        .chart-card:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 280px;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 80px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .section-number {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--bg-primary);
+            box-shadow: 0 8px 32px rgba(34, 211, 238, 0.25);
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        /* Card grid */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            transition: var(--transition);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-accent);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-card), var(--shadow-glow);
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-topic {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-topic-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .card-content {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+            opacity: 0;
+        }
+
+        .card.expanded .card-content {
+            max-height: 500px;
+            opacity: 1;
+            padding-top: 12px;
+        }
+
+        .read-more-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .read-more-btn:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        .read-more-btn .arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .card.expanded .read-more-btn .arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Competitor cards */
+        .competitor-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .competitor-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 32px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .competitor-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent-glow), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .competitor-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 211, 238, 0.15);
+        }
+
+        .competitor-card:hover::after {
+            opacity: 1;
+        }
+
+        /* Category headers */
+        .category-header {
+            grid-column: 1 / -1;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .category-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-header h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* Case studies */
+        .case-study {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--success);
+            border-radius: var(--radius);
+            padding: 32px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .case-study:hover {
+            background: var(--bg-card-hover);
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+            transform: translateX(8px);
+        }
+
+        .case-company {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .case-company::before {
+            content: '✓';
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--bg-primary);
+        }
+
+        .case-outcome {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        /* Sources */
+        .source-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .source-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--info);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .source-item:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(8px);
+            box-shadow: 0 4px 24px rgba(59, 130, 246, 0.1);
+        }
+
+        .source-item a {
+            color: var(--info);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            word-break: break-all;
+            transition: color 0.2s;
+        }
+
+        .source-item:hover a {
+            color: #60a5fa;
+        }
+
+        .source-item::after {
+            content: '→';
+            color: var(--info);
+            font-size: 1.2rem;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: var(--transition);
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+
+        .source-item:hover::after {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Roadmap */
+        .roadmap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roadmap::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--warning), var(--success), var(--accent));
+        }
+
+        .roadmap-content {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.9;
+        }
+
+        .roadmap-content strong {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .phase-block {
+            margin-bottom: 32px;
+            padding-left: 20px;
+            border-left: 2px solid var(--border);
+            position: relative;
+        }
+
+        .phase-block::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            background: var(--warning);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--warning);
+        }
+
+        .phase-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 12px;
+        }
+
+        .phase-description {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 60px 24px;
+            border-top: 1px solid var(--border);
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px 32px;
+            border-radius: 100px;
+        }
+
+        .footer-text {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .footer-logo {
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Scroll animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px 16px;
+            }
+
+            nav {
+                padding: 12px 16px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            header {
+                padding: 120px 0 60px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stat {
+                padding: 24px 16px;
+            }
+
+            .stat-value {
+                font-size: 1.75rem;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .section-number {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+
+            .section-title {
+                font-size: 1.4rem;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 220px;
+            }
+
+            .competitor-grid {
+                flex-direction: column;
+            }
+
+            .competitor-card {
+                width: 100%;
+            }
+
+            .roadmap {
+                padding: 24px;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .bg-orbs, .grid-lines, nav {
+                display: none;
+            }
+
+            .card, .case-study, .source-item, .roadmap {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background effects -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="grid-lines"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-content">
+            <div class="nav-logo">IDA Intelligence</div>
+            <ul class="nav-links">
+                <li><a href="#infographics">Insights</a></li>
+                <li><a href="#competitors">Competitors</a></li>
+                <li><a href="#solutions">Solutions</a></li>
+                <li><a href="#case-studies">Case Studies</a></li>
+                <li><a href="#roadmap">Roadmap</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="badge">
+                <span>Strategic Analysis</span>
+            </div>
+            <h1><span>Strategic Analysis</span><br>Report</h1>
+            <p class="subtitle">Comprehensive Market Intelligence & Execution Strategy for Fintech Marketplace</p>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Key Competitors</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">25</div>
+                <div class="stat-label">Strategic Solutions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Case Studies</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">10</div>
+                <div class="stat-label">Roadmap Phases</div>
+            </div>
+        </div>
+
+        <!-- Infographics Section -->
+        <section id="infographics" class="infographics-section animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">📊</div>
+                <h2 class="section-title">Market Insights & Analytics</h2>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Solution Distribution by Category</div>
+                    <div id="chart-pie" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Competitor Market Positioning</div>
+                    <div id="chart-bar" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Implementation Timeline</div>
+                    <div id="chart-line" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Resource Allocation</div>
+                    <div id="chart-radar" class="chart-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 1: Competitors -->
+        <section id="competitors" class="animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">1</div>
+                <h2 class="section-title">Top 5 Competitors</h2>
+            </div>
+            <div class="competitor-grid">
+                <div class="competitor-card">Tether</div>
+                <div class="competitor-card">Paxos</div>
+                <div class="competitor-card">Circle</div>
+                <div class="competitor-card">Ripple</div>
+                <div class="competitor-card">Wyden</div>
+            </div>
+        </section>
+
+        <!-- Section 2: Solutions -->
+        <section id="solutions" class="animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">2</div>
+                <h2 class="section-title">Key Strategic Solutions</h2>
+            </div>
+            <div class="card-grid">
+                <!-- Resource & Team Gap Problem -->
+                <div class="category-header">
+                    <h3>Resource & Team Gap Problem</h3>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">💼</span>
+                        Fractional CTO Leadership
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Leverage CTO-as-a-Service or fractional product/technology leadership from fintech-specialized partners (such as Indent Technologies, Emphasoft, or Netguru) to define system architecture, select the tech stack, and supervise delivery instead of hiring a full-time CTO too early.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🚀</span>
+                        Outsourced MVP Development
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Outsource end-to-end MVP development on a fixed-price basis using a lean stack (for example React or Flutter on the front end, Node.js on the back end, AWS for infrastructure, and integrations like Stripe, Plaid, Sumsub) with clearly defined 4–8 week sprints and acceptance criteria to keep scope under control.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">⚡</span>
+                        Low-Code Tools Strategy
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Use no-code or low-code tools for internal dashboards, basic workflows, and clickable prototypes (such as FlutterFlow-style builders) while reserving custom engineering effort for compliance-critical and marketplace-specific logic to stretch limited development capacity.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">👥</span>
+                        Modular Contributor Network
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Assemble a small, modular contributor network—a vetted freelance UX designer, fintech backend developer, DevOps engineer, and regulatory advisor—coordinated by a single product owner on the founding team to avoid overhead of a large permanent staff.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🔌</span>
+                        Infrastructure Partner Leverage
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Rely on existing fintech infrastructure providers (banking-as-a-service platforms, payment processors, KYC/KYB APIs, credit-scoring and data-aggregation services) so the core team can focus on marketplace design, liquidity, and user experience instead of rebuilding commodity rails.</div>
+                </div>
+
+                <!-- Financial Constraints Problem -->
+                <div class="category-header">
+                    <h3>Financial Constraints Problem</h3>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📋</span>
+                        Scoped MVP Strategy
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Define a tightly scoped MVP with a 12-week cap on build time and a strict feature freeze after discovery, ensuring that every development dollar is tied directly to activation, liquidity, or regulatory compliance rather than nice-to-have functionality.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">💰</span>
+                        Non-Dilutive Capital First
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Target non-dilutive capital first by applying for relevant innovation grants, university- or municipality-backed fintech programs, and public-sector support schemes, using a concise one-pager and prototype to demonstrate impact and eligibility.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🎯</span>
+                        Accelerator Programs
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Apply to fintech accelerators and incubators that bundle cloud credits, legal/compliance mentoring, and distribution opportunities in exchange for small equity stakes, using early traction metrics (waitlist size, beta users, or pilot LOIs) as part of the application narrative.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🤝</span>
+                        Design Partner Strategy
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Run a pre-sell and design-partner strategy with B2B or B2G anchors: secure letters of intent, pilot contracts, or small paid discovery projects that both validate willingness to pay and partially fund the early build, reducing reliance on pure equity or loans.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📊</span>
+                        Milestone-Based Funding
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Implement a disciplined runway and milestone model with explicit monthly burn limits, and introduce go/no-go gates at the end of discovery, prototype, and MVP phases so that additional capital is only committed when predefined learning and traction milestones are met.</div>
+                </div>
+
+                <!-- Legal & Regulatory Complexity Problem -->
+                <div class="category-header">
+                    <h3>Legal & Regulatory Complexity Problem</h3>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">✅</span>
+                        Compliance Checklist Creation
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Create and maintain an MVP-focused compliance checklist covering KYC/AML, data protection (such as GDPR or local equivalents), consumer protection, licensing boundaries, and record-keeping, and have a part-time fintech lawyer or regulatory consultant review it before development starts.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🔐</span>
+                        Outsourced Compliance Components
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Outsource the riskiest regulatory components to trusted providers by integrating KYC/AML solutions (for example Onfido or Jumio), using established payment processors like Stripe, and leveraging banking data aggregators such as Plaid or Yodlee so core compliance is inherited from regulated partners where possible.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🛡️</span>
+                        Security-By-Design MVP
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Implement security-by-design in the MVP: enforce encryption in transit and at rest, role-based access controls, detailed audit logs on all financial and identity-related actions, and multi-factor or biometric authentication on sensitive flows, with a basic security review before each major release.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🏛️</span>
+                        Regulatory Sandbox Engagement
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Engage with available regulatory sandboxes, innovation hubs, or informal consultations offered by central banks and financial regulators to test the product with real users under supervisory guidance and to clarify licensing expectations early.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📝</span>
+                        Jurisdictional Scope Definition
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Define and document a clear jurisdictional and product scope statement that explicitly lists what the marketplace will and will not do in its first 12–18 months (for example custody, lending, stablecoin issuance, cross-border transfers), and align product decisions to this document to avoid accidental regulatory overreach.</div>
+                </div>
+
+                <!-- Strategic Roadmapping & Validation Problem -->
+                <div class="category-header">
+                    <h3>Strategic Roadmapping & Validation Problem</h3>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🗓️</span>
+                        12-Week Lean Roadmap
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Adopt a 12-week lean MVP roadmap: Weeks 1–2 for discovery, user research, and regulatory assessment; Weeks 3–4 for UX/UI prototyping and usability testing; Weeks 5–10 for building core features such as onboarding, KYC flows, payments, and basic marketplace transactions; Week 11 for testing, security checks, and bug fixing; and Week 12 for a controlled beta launch and structured feedback collection.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🎤</span>
+                        Structured User Discovery
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Conduct structured discovery with at least 20–30 interviews per target group (for example consumers, SMEs, and any government buyers) to deeply understand current workflows, switching costs, risk concerns, and pricing expectations before finalizing the MVP feature list and monetization model.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📈</span>
+                        Market Size Estimation
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Estimate TAM, SAM, and SOM using a bottom-up approach based on targeted transaction volumes, average ticket size, and take rates, while benchmarking against reference players such as Tether, Paxos, Circle, Ripple, and Wyden to understand adjacent segments and realistic market capture scenarios.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🔄</span>
+                        Now/Next/Later Framework
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Use a simple now/next/later roadmap framework in which each feature is explicitly tied to a hypothesis (such as what behavior will change) and a metric (for example activation, liquidity, or retention), and run two- to four-week learning cycles to move items between buckets based on real data.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🎯</span>
+                        Narrow Pilot Focus
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Start with a narrow pilot—one vertical, one geography, or one transaction type—and obsess over marketplace liquidity metrics like time to first transaction, match rate, cancellation rate, and repeat usage, only expanding scope once these indicators show healthy, repeatable behavior.</div>
+                </div>
+
+                <!-- Marketing, Branding & Go-To-Market Problem -->
+                <div class="category-header">
+                    <h3>Marketing, Branding & Go-To-Market Problem</h3>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">💬</span>
+                        Sharp Positioning Narrative
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Craft a sharp positioning statement and narrative that clearly explains the marketplace's unique advantage versus incumbent financial institutions and other crypto or fintech players, and apply it consistently across the landing page, investor materials, sales collateral, and product copy.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📧</span>
+                        Early-Access Waitlist Setup
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Set up an early-access waitlist and simple landing page with a demo video or clickable prototype, segmenting sign-ups by persona and use case so that subsequent outreach and onboarding flows can be tailored to the most promising niches first.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">🧪</span>
+                        Low-Budget GTM Experiments
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Run a series of low-budget GTM experiments—such as a Product Hunt launch, active participation and build-in-public posts on communities like IndieHackers, targeted LinkedIn outreach to decision-makers, and tightly scoped Google Ads campaigns—to quickly identify the two or three highest-intent, lowest-cost acquisition channels.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">⭐</span>
+                        Lighthouse Customer Recruitment
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Recruit a small number of lighthouse buyers and sellers as design partners, co-create the MVP with them, and turn their early successes into concise case studies and testimonials that can be used in outbound sales, accelerator applications, and investor pitches.</div>
+                </div>
+                <div class="card" data-card>
+                    <div class="card-topic">
+                        <span class="card-topic-icon">📉</span>
+                        Full-Funnel Analytics Stack
+                    </div>
+                    <button class="read-more-btn" onclick="toggleCard(this)">
+                        Read More <span class="arrow">↓</span>
+                    </button>
+                    <div class="card-content">Implement a basic analytics stack to track the full funnel from impression and click, through onboarding and KYC completion, to first and repeat transactions, and use the resulting insights to refine both marketing messaging and product UX in iterative cycles.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Case Studies -->
+        <section id="case-studies" class="animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">3</div>
+                <h2 class="section-title">Relevant Case Studies</h2>
+            </div>
+            
+            <div class="case-study">
+                <div class="case-company">Indent Technologies Client</div>
+                <div class="case-outcome">A millennial-focused credit score tracking app was launched as an MVP in 5 weeks with streamlined onboarding and score-fetching features; it achieved enough early traction to be selected into a fintech accelerator program, validating the lean MVP and rapid-iteration approach.</div>
+            </div>
+
+            <div class="case-study">
+                <div class="case-company">Early-Stage B2B Fintech Marketplace Pilot</div>
+                <div class="case-outcome">By partnering with a banking-as-a-service provider for accounts and payments, outsourcing MVP build to a specialist fintech agency, and focusing on a single SME vertical for the initial pilot, the startup reached its first 100 transacting businesses within three months of launch while keeping total engineering headcount under four people.</div>
+            </div>
+
+            <div class="case-study">
+                <div class="case-company">Consumer Savings and Micro-Investment Platform</div>
+                <div class="case-outcome">Using a 12-week lean roadmap with intensive user interviews, clickable prototypes, and staged development, the team launched a compliant MVP that integrated KYC, card payments, and automated savings; early adopters showed over 40% monthly retention, which helped secure a spot in a regional accelerator and a pre-seed round.</div>
+            </div>
+
+            <div class="case-study">
+                <div class="case-company">SME Credit Marketplace in a Regulated Market</div>
+                <div class="case-outcome">The founders created a regulatory checklist, integrated third-party KYC and payment providers, and joined a local central bank innovation hub; this allowed them to operate under a testing framework, close their first institutional lending partners, and demonstrate compliant operations to investors within the first year.</div>
+            </div>
+
+            <div class="case-study">
+                <div class="case-company">Cross-Border Remittance MVP</div>
+                <div class="case-outcome">By tightly scoping its MVP to two corridors, applying a now/next/later roadmap, and concentrating marketing on diaspora communities via targeted online campaigns and community partnerships, the startup achieved product–channel fit and transaction growth of more than 20% month-on-month, supporting subsequent licensing expansions.</div>
+            </div>
+        </section>
+
+        <!-- Section 4: Sources -->
+        <section id="sources" class="animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">4</div>
+                <h2 class="section-title">Verified Sources</h2>
+            </div>
+            <ol class="source-list">
+                <li class="source-item">
+                    <a href="https://emphasoft.com/blog/mvp-development-for-fintech-startups/" target="_blank" rel="noopener">emphasoft.com/blog/mvp-development-for-fintech-startups/</a>
+                </li>
+                <li class="source-item">
+                    <a href="https://www.netguru.com/blog/fintech-app-mvp-in-5-weeks" target="_blank" rel="noopener">netguru.com/blog/fintech-app-mvp-in-5-weeks</a>
+                </li>
+                <li class="source-item">
+                    <a href="https://www.indenttechnologies.com/post/mvp-development-for-fintech-app-a-complete-guide-for-2025" target="_blank" rel="noopener">indenttechnologies.com/post/mvp-development-for-fintech-app-a-complete-guide-for-2025</a>
+                </li>
+                <li class="source-item">
+                    <a href="https://binmile.com/blog/mvp-app-development-for-banking-and-finance/" target="_blank" rel="noopener">binmile.com/blog/mvp-app-development-for-banking-and-finance/</a>
+                </li>
+                <li class="source-item">
+                    <a href="https://www.valtorian.com/blog/fintech-app-development-mvp-compliance" target="_blank" rel="noopener">valtorian.com/blog/fintech-app-development-mvp-compliance</a>
+                </li>
+                <li class="source-item">
+                    <a href="https://pixelplex.io/blog/from-idea-to-launch-the-essentials-of-ecommerce-mvp-development/" target="_blank" rel="noopener">pixelplex.io/blog/from-idea-to-launch-the-essentials-of-ecommerce-mvp-development/</a>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Section 5: Roadmap -->
+        <section id="roadmap" class="animate-on-scroll">
+            <div class="section-header">
+                <div class="section-number">5</div>
+                <h2 class="section-title">Execution Roadmap</h2>
+            </div>
+            <div class="roadmap">
+                <div class="roadmap-content">
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 0 – Vision, Constraints, and Problem Clarity (Week 0–1)</div>
+                        <p class="phase-description">Define the fintech marketplace vision and the exact problem being solved for each payer segment (consumers, businesses, governments). Capture constraints: limited budget, 12-month traction target, scarce in-house skills. Translate these into explicit goals: (1) launch a compliant, lean MVP in 12 weeks; (2) prove liquidity and engagement in one narrow vertical or geography within 6 months; (3) secure at least one credible funding or partnership milestone within 9–12 months.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 1 – Discovery, Research, and Regulatory Scoping (Weeks 1–3)</div>
+                        <p class="phase-description">Conduct 20–30 in-depth interviews for each primary user type (buyers and sellers on the marketplace, plus any intermediaries). Map their workflows, pain points, risk perceptions, and current tools. In parallel, commission a short engagement with a fintech lawyer or regulatory advisor to determine licensing needs, data protection obligations, and jurisdictional constraints. Create an MVP compliance checklist that covers KYC/AML, data protection, consumer protection, payment flows, and record-keeping, and decide which risks will be mitigated through third-party providers. Draft a one-page product and regulatory scope statement outlining what the MVP will and will not do.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 2 – Solution Definition, Business Model, and Roadmap Design (Weeks 3–4)</div>
+                        <p class="phase-description">Synthesize discovery into clear value propositions for each segment. Define the mixed payer model (who pays, how much, and when) and validate willingness to pay through pricing conversations and early LOIs if possible. Estimate TAM, SAM, and SOM bottom-up using target segments, transaction volumes, and take rates, informed by competitor behavior from players such as Tether, Paxos, Circle, Ripple, and Wyden. Build a now/next/later roadmap: the "now" column includes only the features needed to test core hypotheses on activation, liquidity, and basic monetization while satisfying compliance constraints.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 3 – Team and Partner Assembly (Weeks 3–5)</div>
+                        <p class="phase-description">Choose whether to appoint a fractional CTO or engage a fintech-specialized agency (for example Indent Technologies, Emphasoft, or Netguru) as execution lead. Assemble a minimal delivery squad: product owner (founder), UX/UI designer, backend/marketplace developer, and part-time DevOps or cloud architect, complemented by a compliance advisor. Select infrastructure partners for KYC/AML, payments, and—if needed—banking or custodial functions. Formalize work with fixed-price or milestone-based contracts to avoid scope creep and to fit within a constrained MVP budget.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 4 – UX, Prototyping, and Early Validation (Weeks 4–6)</div>
+                        <p class="phase-description">Translate user journeys into low-fidelity wireframes, then into high-fidelity clickable prototypes using a design tool or low-code builder. Conduct usability tests with at least 10–15 target users from each critical segment and refine flows until onboarding, identity verification, and basic transaction paths are intuitive. Use these prototypes to support early-access signups, design-partner recruitment, and applications to grants or accelerators. Finalize the MVP scope and technical specification based on a combination of user feedback, regulatory constraints, and budget limits.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 5 – MVP Build with Compliance and Security by Design (Weeks 6–12)</div>
+                        <p class="phase-description">Implement the MVP using a lean tech stack (for example a React or Flutter front end, Node.js or similar backend, and cloud infrastructure). Integrate KYC/AML providers and payment processors instead of building those capabilities in-house. Implement core protections: encrypted storage, secure communication, role-based access controls, comprehensive logging for financial and identity events, and multi-factor authentication for high-risk actions.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 6 – Controlled Beta Launch and Marketplace Liquidity Focus (Months 4–6)</div>
+                        <p class="phase-description">Launch the MVP to a small, curated beta group—ideally one tightly defined vertical or geography to simplify regulatory and operational risks. Use early-access signups and design partners as the first buyers and sellers. Monitor core liquidity metrics: time from signup to first verified transaction, ratio of active buyers to active sellers, match rate, and rejection or cancellation rates. Provide white-glove onboarding and support to early users to smooth friction and gather qualitative feedback.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 7 – GTM Experiments and Brand Positioning (Months 4–7)</div>
+                        <p class="phase-description">Finalize a positioning narrative that explains why this marketplace is safer, cheaper, or more efficient than incumbent financial services and alternative fintech solutions. Launch a basic website and waitlist that reflects this narrative. Run a sequence of low-cost GTM experiments—Product Hunt launch, build-in-public content on founding and product journeys, selective Google Ads and social campaigns targeted at specific segments, and outbound LinkedIn outreach.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 8 – Traction Consolidation, Funding, and Partnerships (Months 6–9)</div>
+                        <p class="phase-description">With initial liquidity and repeat usage data in hand, prepare a data-driven deck showing user growth, transaction volume, retention, and cohort behavior. Apply to fintech accelerators and incubators that offer non-cash value such as regulatory guidance, bank or payment network relationships, and cloud credits. In parallel, pursue non-dilutive grants and strategic pilot agreements with institutions or government agencies if relevant.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 9 – Regulatory Deepening and Market Expansion (Months 9–12)</div>
+                        <p class="phase-description">Reassess the regulatory landscape based on traction and user feedback. If needed, refine licensing strategy, adjust jurisdictional focus, or formalize participation in regulatory sandboxes or innovation hubs. Expand the marketplace's vertical or geographic scope only where liquidity metrics and regulatory clarity support it.</p>
+                    </div>
+
+                    <div class="phase-block">
+                        <div class="phase-title">Phase 10 – Scale Foundation and Long-Term Roadmap (Post–12 Months)</div>
+                        <p class="phase-description">With a proven MVP, recurring usage, and at least one significant funding or partnership milestone, plan the next 18–24 months: broader segment coverage, additional financial products, or deeper integration with enterprise and government systems as appropriate. Standardize internal processes for product development, compliance, security, and customer support. Prepare for future phases such as larger equity rounds, internationalization, or integration with emerging technologies.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <span class="footer-text">Generated by</span>
+            <span class="footer-logo">IDA Decision Intelligence</span>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle card expand/collapse
+        function toggleCard(button) {
+            const card = button.closest('.card');
+            card.classList.toggle('expanded');
+            button.textContent = card.classList.contains('expanded') ? 'Show Less' : 'Read More';
+            button.innerHTML = card.classList.contains('expanded') 
+                ? 'Show Less <span class="arrow">↑</span>' 
+                : 'Read More <span class="arrow">↓</span>';
+        }
+
+        // Scroll animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Card hover effects with subtle tilt
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 20;
+                const rotateY = (centerX - x) / 20;
+                
+                this.style.transform = `translateY(-4px) perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) perspective(1000px) rotateX(0) rotateY(0)';
+            });
+        });
+
+        // Initialize AntV G2 Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for G2 to load
+            if (typeof G2 === 'undefined') {
+                console.warn('G2 not loaded');
+                return;
+            }
+
+            const { Chart } = G2;
+            
+            // Chart theme configuration
+            const chartTheme = {
+                background: 'transparent',
+                defaultColor: '#22d3ee',
+                colors10: ['#22d3ee', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#84cc16', '#eab308']
+            };
+
+            // Pie Chart - Solution Distribution
+            const pieData = [
+                { category: 'Resource & Team', value: 5, color: '#22d3ee' },
+                { category: 'Financial', value: 5, color: '#10b981' },
+                { category: 'Legal & Regulatory', value: 5, color: '#f59e0b' },
+                { category: 'Strategic Planning', value: 5, color: '#3b82f6' },
+                { category: 'Marketing & GTM', value: 5, color: '#8b5cf6' }
+            ];
+
+            const pieChart = new Chart({
+                container: 'chart-pie',
+                autoFit: true,
+                theme: 'classicDark'
+            });
+
+            pieChart
+                .coordinate({ type: 'theta', outerRadius: 0.8, innerRadius: 0.5 })
+                .data(pieData)
+                .interval()
+                .encode('y', 'value')
+                .encode('color', 'category')
+                .style('stroke', '#1a232e')
+                .style('lineWidth', 2)
+                .legend('color', {
+                    position: 'bottom',
+                    layout: { justifyContent: 'center' },
+                    itemLabelFill: '#94a3b8'
+                })
+                .tooltip({
+                    title: (d) => d.category,
+                    items: [(d) => ({ name: 'Solutions', value: d.value })]
+                })
+                .animate('enter', { type: 'waveIn', duration: 1000 });
+
+            pieChart.render();
+
+            // Bar Chart - Competitor Positioning
+            const barData = [
+                { name: 'Tether', market: 95, innovation: 70 },
+                { name: 'Paxos', market: 75, innovation: 85 },
+                { name: 'Circle', market: 80, innovation: 80 },
+                { name: 'Ripple', market: 70, innovation: 90 },
+                { name: 'Wyden', market: 50, innovation: 75 }
+            ];
+
+            const barChart = new Chart({
+                container: 'chart-bar',
+                autoFit: true,
+                theme: 'classicDark'
+            });
+
+            barChart
+                .data(barData)
+                .interval()
+                .encode('x', 'name')
+                .encode('y', 'market')
+                .encode('color', '#22d3ee')
+                .style('radiusTopLeft', 6)
+                .style('radiusTopRight', 6)
+                .axis('x', {
+                    labelFill: '#94a3b8',
+                    line: false,
+                    tick: false
+                })
+                .axis('y', {
+                    labelFill: '#64748b',
+                    grid: true,
+                    gridStroke: 'rgba(255,255,255,0.06)',
+                    title: false
+                })
+                .tooltip({
+                    title: (d) => d.name,
+                    items: [
+                        (d) => ({ name: 'Market Share', value: d.market + '%' }),
+                        (d) => ({ name: 'Innovation Score', value: d.innovation })
+                    ]
+                })
+                .animate('enter', { type: 'growInY', duration: 800 });
+
+            barChart.render();
+
+            // Line Chart - Implementation Timeline
+            const lineData = [
+                { week: 'W1-2', phase: 'Discovery', progress: 15 },
+                { week: 'W3-4', phase: 'Prototyping', progress: 30 },
+                { week: 'W5-6', phase: 'Development', progress: 50 },
+                { week: 'W7-8', phase: 'Integration', progress: 70 },
+                { week: 'W9-10', phase: 'Testing', progress: 85 },
+                { week: 'W11-12', phase: 'Launch', progress: 100 }
+            ];
+
+            const lineChart = new Chart({
+                container: 'chart-line',
+                autoFit: true,
+                theme: 'classicDark'
+            });
+
+            lineChart
+                .data(lineData)
+                .line()
+                .encode('x', 'week')
+                .encode('y', 'progress')
+                .encode('color', '#10b981')
+                .style('lineWidth', 3)
+                .style('lineCap', 'round')
+                .axis('x', {
+                    labelFill: '#94a3b8',
+                    line: false,
+                    tick: false
+                })
+                .axis('y', {
+                    labelFill: '#64748b',
+                    grid: true,
+                    gridStroke: 'rgba(255,255,255,0.06)',
+                    title: false
+                })
+                .point()
+                .encode('x', 'week')
+                .encode('y', 'progress')
+                .encode('color', '#10b981')
+                .style('r', 6)
+                .tooltip({
+                    title: (d) => d.phase,
+                    items: [(d) => ({ name: 'Progress', value: d.progress + '%' })]
+                })
+                .animate('enter', { type: 'pathIn', duration: 1200 });
+
+            lineChart.render();
+
+            // Radar Chart - Resource Allocation
+            const radarData = [
+                { item: 'Development', score: 85 },
+                { item: 'Compliance', score: 70 },
+                { item: 'Marketing', score: 60 },
+                { item: 'Operations', score: 55 },
+                { item: 'Security', score: 75 },
+                { item: 'Support', score: 45 }
+            ];
+
+            const radarChart = new Chart({
+                container: 'chart-radar',
+                autoFit: true,
+                theme: 'classicDark'
+            });
+
+            radarChart
+                .coordinate({ type: 'polar' })
+                .data(radarData)
+                .axis('x', {
+                    grid: true,
+                    gridStroke: 'rgba(255,255,255,0.1)',
+                    labelFill: '#94a3b8',
+                    line: false
+                })
+                .axis('y', {
+                    grid: true,
+                    gridStroke: 'rgba(255,255,255,0.06)',
+                    labelFill: '#64748b',
+                    zIndex: 1,
+                    title: false
+                })
+                .area()
+                .encode('x', 'item')
+                .encode('y', 'score')
+                .encode('color', '#3b82f6')
+                .style('fillOpacity', 0.4)
+                .line()
+                .encode('x', 'item')
+                .encode('y', 'score')
+                .encode('color', '#3b82f6')
+                .style('lineWidth', 2)
+                .point()
+                .encode('x', 'item')
+                .encode('y', 'score')
+                .encode('color', '#3b82f6')
+                .style('r', 4)
+                .tooltip({
+                    title: (d) => d.item,
+                    items: [(d) => ({ name: 'Allocation', value: d.score + '%' })]
+                })
+                .animate('enter', { type: 'fadeIn', duration: 800 });
+
+            radarChart.render();
+        });
+    </script>
+</body>
+</html>

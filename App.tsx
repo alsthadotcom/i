@@ -183,7 +183,7 @@ const App: React.FC = () => {
   const handleMarketplaceItemClick = (item: MarketplaceView) => {
     setSelectedItem(item);
     setSelectedIdeaId(item.idea_id);
-    setCurrentPage('item-details');
+    setCurrentPage('sell-idea');
   };
 
   const isFocused = !!activeCreation || isGenerating;
@@ -233,7 +233,7 @@ const App: React.FC = () => {
 
               {/* 3. Trending Grid - Preview */}
               <div className="w-full relative">
-                <TrendingGrid limit={4} />
+                <TrendingGrid limit={4} onItemClick={handleMarketplaceItemClick} />
                 <div className="flex justify-center mt-8">
                   <button
                     onClick={() => setCurrentPage('marketplace')}
@@ -259,7 +259,7 @@ const App: React.FC = () => {
           )}
 
           {currentPage === 'sell-idea' && (
-            <SellIdea onBack={() => setCurrentPage('marketplace')} />
+            <SellIdea onBack={() => setCurrentPage('marketplace')} initialIdeaId={selectedIdeaId} />
           )}
 
           {currentPage === 'profile' && (
